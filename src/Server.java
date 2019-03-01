@@ -1,6 +1,8 @@
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Server {
     private static final String REGISTER = "REGISTER";
@@ -8,21 +10,42 @@ public class Server {
 
     private static final String PLATE_REGEX = "[0-9A-Z]{2}-[0-9A-Z]{2}-[0-9A-Z]{2}";
 
+    private static final int TTL = 1;
+
     private static Map<String, String> plates = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            System.out.println("Usage: java Server <port_number>");
+        if (args.length != 3) {
+            System.out.println("Usage: java Server <srvc_port> <mcast_addr> <mcast_port>");
             System.exit(-1);
         }
 
-        DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt(args[0]));
+        MulticastSocket adSocket = new MulticastSocket(Integer.parseInt(args[2]));
+        adSocket.setTimeToLive(TTL);
+
+        DatagramSocket registrySocket = new DatagramSocket(Integer.parseInt(args[0]));
+
+        String ad = InetAddress.getByName("localhost").getHostAddress() + " " + args[0];
+        byte[] advertisement = ad.getBytes();
+        DatagramPacket advertisementPacket = new DatagramPacket(advertisement,advertisement.length,InetAddress.getByName(args[1]),Integer.parseInt(args[2]));
+
+        Timer t = new Timer();
+        TimerTask tt = new TimerTask() {
+            @Override
+            public void run() {
+                try{
+                    adSocket.send(advertisementPacket);
+                    System.out.println("multicast: " + args[1] + " " + args[0] + ": " + ad);
+                } catch (Exception e){}
+            }
+        };
+        t.schedule(tt,0,1000);
 
         while (true) {
             byte[] receiveData = new byte[1024], sendData;
 
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            serverSocket.receive(receivePacket);
+            registrySocket.receive(receivePacket);
 
             String answer = parseRequest(new String(receivePacket.getData()).trim());
 
@@ -30,7 +53,7 @@ public class Server {
             int port = receivePacket.getPort();
             sendData = answer.getBytes();
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
-            serverSocket.send(sendPacket);
+            registrySocket.send(sendPacket);
         }
     }
 
