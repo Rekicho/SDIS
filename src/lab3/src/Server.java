@@ -1,11 +1,8 @@
-import java.net.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class Server implements Plate {
     private static final String REGISTER = "REGISTER";
@@ -26,60 +23,23 @@ public class Server implements Plate {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
-            System.out.println("Usage: java Server <remote_object_name>");
+            System.out.println("Usage: java lab2.ola.Server <remote_object_name>");
             System.exit(-1);
         }
 
         try {
-            Server obj = new Server();
+            lab2.ola.Server obj = new lab2.ola.Server();
             Plate stub = (Plate) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(args[0], stub);
 
-            System.out.println("Server ready");
+            System.out.println("lab2.ola.Server ready");
         } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
+            System.err.println("lab2.ola.Server exception: " + e.toString());
             e.printStackTrace();
         }
-
-        /*   MulticastSocket adSocket = new MulticastSocket(Integer.parseInt(args[2]));
-        adSocket.setTimeToLive(TTL);
-
-        DatagramSocket registrySocket = new DatagramSocket(Integer.parseInt(args[0]));
-
-        String ad = InetAddress.getByName("localhost").getHostAddress() + " " + args[0];
-        byte[] advertisement = ad.getBytes();
-        DatagramPacket advertisementPacket = new DatagramPacket(advertisement, advertisement.length, InetAddress.getByName(args[1]), Integer.parseInt(args[2]));
-
-        Timer t = new Timer();
-        TimerTask tt = new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    adSocket.send(advertisementPacket);
-                    System.out.println("multicast: " + args[1] + " " + args[0] + ": " + ad);
-                } catch (Exception e) {
-                }
-            }
-        };
-        t.schedule(tt, 0, 1000);
-
-        while (true) {
-            byte[] receiveData = new byte[1024], sendData;
-
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            registrySocket.receive(receivePacket);
-
-            String answer = parseRequest(new String(receivePacket.getData()).trim());
-
-            InetAddress IPAddress = receivePacket.getAddress();
-            int port = receivePacket.getPort();
-            sendData = answer.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
-            registrySocket.send(sendPacket);
-        } */
     }
 
     private static String parseRequest(String request) {
