@@ -35,8 +35,10 @@ public class Server implements ServerRMI {
         mdb.joinGroup(InetAddress.getByName(mdb_host));
 
         Thread mdb_listen = new Thread("MDBListen") {
-            private void interpretMessage(byte[] buffer) throws Exception{
+            private void interpretMessage(byte[] buffer, int length) throws Exception{
                 String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n");
+
+                int body_length = length - message[0].length() - 4;
 
                 String[] args = message[0].trim().split(" ");
 
@@ -44,7 +46,7 @@ public class Server implements ServerRMI {
                     return;
 
                 PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
-                writer.print(message[1].substring(0,64000));
+                writer.print(message[1].substring(0,body_length));
                 writer.close();
             }
 
@@ -55,7 +57,7 @@ public class Server implements ServerRMI {
                     DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
                     try {
                         mdb.receive(receivePacket);
-                        interpretMessage(buffer);
+                        interpretMessage(buffer, receivePacket.getLength());
                     } catch (Exception e) {
                         return;
                     }
@@ -118,10 +120,10 @@ public class Server implements ServerRMI {
                 count = fileToBackup.read(buffer);
                 header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
-                byte[] message = new byte[header.length + buffer.length];
+                byte[] message = new byte[header.length + count];
 
                 System.arraycopy(header, 0, message, 0, header.length);
-                System.arraycopy(buffer, 0, message, header.length, buffer.length);
+                System.arraycopy(buffer, 0, message, header.length, count);
 
                 DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
                 mdb.setTimeToLive(TTL);
