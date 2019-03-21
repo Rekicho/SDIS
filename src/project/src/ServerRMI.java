@@ -1,4 +1,6 @@
-package PACKAGE_NAME;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 
-public interface ServerRMI {
+public interface ServerRMI extends Remote {
+    String backup(String request) throws RemoteException;
 }
