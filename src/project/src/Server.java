@@ -1,9 +1,11 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,12 +32,42 @@ public class Server implements ServerRMI {
         this.mdb_port = mdb_port;
 
         mdb = new MulticastSocket(mdb_port);
-        mdb.setTimeToLive(TTL);
         mdb.joinGroup(InetAddress.getByName(mdb_host));
+
+        Thread mdb_listen = new Thread("MDBListen") {
+            private void interpretMessage(byte[] buffer) throws Exception{
+                String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n");
+
+                String[] args = message[0].trim().split(" ");
+
+                if(!args[0].equals("PUTCHUNK"))
+                    return;
+
+                PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
+                writer.print(message[1].substring(0,64000));
+                writer.close();
+            }
+
+            public void run() {
+                byte[] buffer = new byte[64100];
+
+                while(true) {
+                    DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+                    try {
+                        mdb.receive(receivePacket);
+                        interpretMessage(buffer);
+                    } catch (Exception e) {
+                        return;
+                    }
+                }
+            }
+        };
+
+        mdb_listen.start();
     }
 
-    private String header(String message_type, String fileId, int chunkNo, Integer replicationDeg) {
-        return message_type + " " + version + " " + id + " " + fileId + " " + chunkNo + " " + (replicationDeg != null ? replicationDeg : "") + " \r\n";
+    private String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {
+        return message_type + " " + version + " " + id + " " + fileId + " " + chunkNo + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
     }
 
     private String generateId(File file) {
@@ -45,10 +77,10 @@ public class Server implements ServerRMI {
 
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] info = digest.digest((file.getName()+attr.creationTime()+attr.lastModifiedTime()+attr.size()).getBytes());
+            byte[] info = digest.digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
 
-            char[] hexChars = new char[info.length*2];
-            for ( int j = 0; j < info.length; j++ ) {
+            char[] hexChars = new char[info.length * 2];
+            for (int j = 0; j < info.length; j++) {
                 int v = info[j] & 0xFF;
                 hexChars[j * 2] = hexArray[v >>> 4];
                 hexChars[j * 2 + 1] = hexArray[v & 0x0F];
@@ -77,24 +109,26 @@ public class Server implements ServerRMI {
         String fileId = generateId(backupfile);
 
         int count;
-        int chunkNo = 0;
+        long chunkNo = 0;
         byte[] buffer = new byte[64000];
         byte[] header;
 
         try {
             do {
                 count = fileToBackup.read(buffer);
-                header = header("PUTCHUNK", fileId,chunkNo,Integer.parseInt(args[1])).getBytes();
+                header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
                 byte[] message = new byte[header.length + buffer.length];
-                System.arraycopy(header,0,message,0,header.length);
-                System.arraycopy(buffer,0,message,header.length,buffer.length);
 
-                DatagramPacket chunkPacket = new DatagramPacket(message,message.length,InetAddress.getByName(mdb_host),mdb_port);
+                System.arraycopy(header, 0, message, 0, header.length);
+                System.arraycopy(buffer, 0, message, header.length, buffer.length);
+
+                DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
+                mdb.setTimeToLive(TTL);
                 mdb.send(chunkPacket);
 
-                System.out.println(chunkNo);
                 chunkNo++;
+                Thread.sleep(1000);
             } while (count == 64000);
         } catch (Exception e) {
             return "FILE I/O ERROR";
