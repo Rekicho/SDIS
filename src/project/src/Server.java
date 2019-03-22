@@ -1,11 +1,9 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,57 +16,51 @@ import java.security.MessageDigest;
 public class Server implements ServerRMI {
     private String version;
     private int id;
-    private MulticastSocket mdb;
-    private String mdb_host;
-    private int mdb_port;
+
+    MulticastSocket mc;
+    String mc_host;
+    int mc_port;
+
+    MulticastSocket mdb;
+    String mdb_host;
+    int mdb_port;
+
+    MulticastSocket mdr;
+    String mdr_host;
+    int mdr_port;
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
     private static final int TTL = 1;
 
-    private Server(String version, int id, String mdb_host, int mdb_port) throws Exception {
+    private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
         this.mdb_host = mdb_host;
         this.mdb_port = mdb_port;
+        this.mc_host = mc_host;
+        this.mc_port = mc_port;
+        this.mdr_host = mc_host;
+        this.mdr_port = mc_port;
 
         mdb = new MulticastSocket(mdb_port);
         mdb.joinGroup(InetAddress.getByName(mdb_host));
 
-        Thread mdb_listen = new Thread("MDBListen") {
-            private void interpretMessage(byte[] buffer, int length) throws Exception{
-                String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n");
+        mc = new MulticastSocket(mc_port);
+        mc.joinGroup(InetAddress.getByName(mc_host));
 
-                int body_length = length - message[0].length() - 4;
+        mdr = new MulticastSocket(mdr_port);
+        mdr.joinGroup(InetAddress.getByName(mdr_host));
 
-                String[] args = message[0].trim().split(" ");
-
-                if(!args[0].equals("PUTCHUNK"))
-                    return;
-
-                PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
-                writer.print(message[1].substring(0,body_length));
-                writer.close();
-            }
-
-            public void run() {
-                byte[] buffer = new byte[64100];
-
-                while(true) {
-                    DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
-                    try {
-                        mdb.receive(receivePacket);
-                        interpretMessage(buffer, receivePacket.getLength());
-                    } catch (Exception e) {
-                        return;
-                    }
-                }
-            }
-        };
+        Thread mdb_listen = new MDBThread(this);
+        Thread mc_listen = new MCThread(this);
+        Thread mdr_listen = new MDRThread(this);
 
         mdb_listen.start();
+        mc_listen.start();
+        mdr_listen.start();
     }
 
-    private String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {
+    String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {
         return message_type + " " + version + " " + id + " " + fileId + " " + chunkNo + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
     }
 
@@ -129,8 +121,13 @@ public class Server implements ServerRMI {
                 mdb.setTimeToLive(TTL);
                 mdb.send(chunkPacket);
 
+                byte[] receive = new byte[100];
+                DatagramPacket receivePacket = new DatagramPacket(receive, receive.length);
+                mc.receive(receivePacket);
+
+                System.out.println(new String(receive).substring(0,6));
+
                 chunkNo++;
-                Thread.sleep(1000);
             } while (count == 64000);
         } catch (Exception e) {
             return "FILE I/O ERROR";
@@ -140,13 +137,13 @@ public class Server implements ServerRMI {
     }
 
     public static void main(String[] args) {
-        if (args.length != 5) {
-            System.out.println("Usage: java Server <protocol_version> <server_id> <remote_object_name> <MDB_IP> <MDB_port>");
+        if (args.length != 7) {
+            System.out.println("Usage: java Server <protocol_version> <server_id> <remote_object_name> <MC_IP> <MC_port> <MDB_IP> <MDB_port> <MDR_IP> <MDR_port>");
             System.exit(-1);
         }
 
         try {
-            Server obj = new Server(args[0], Integer.parseInt(args[1]), args[3], Integer.parseInt(args[4]));
+            Server obj = new Server(args[0], Integer.parseInt(args[1]), args[3], Integer.parseInt(args[4]), args[5], Integer.parseInt(args[6]), args[7], Integer.parseInt(args[8]));
             ServerRMI stub = (ServerRMI) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
