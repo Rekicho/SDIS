@@ -5,29 +5,28 @@ ACCESS_POINT="ServerRMI"
 VERSION_APP="1.0"
 SERVER_ID="1"
 
-# IPs AND PORTs
-MC_MULTICAST_IP="1"
-MC_PORT="11"
-
-MDB_MULTICAST_IP="2"
-MDB_PORT="22"
-
-MDR_MULTICAST_IP="3"
-MDR_PORT="33"
-
 # CLIENT INFORMATION
 APP_NAME="TestApp"
+
+# USER SPECIFCATION
+FROM_SERVER_ID=${1:-1}
+TO_SERVER_ID=${2:-$FROM_SERVER_ID}
 
 
 # SETUP
 start rmiregistry
 sleep 1
 
-# SERVER
-start java Server $VERSION_APP $SERVER_ID $ACCESS_POINT #$MC_MULTICAST_IP $MC_PORT $MDB_MULTICAST_IP $MDB_PORT $MDR_MULTICAST_IP $MDR_PORT
-sleep 1
+# RUN THE SERVERS
+for i in $(seq $FROM_SERVER_ID $TO_SERVER_ID)
+do 
+	start ./server.sh $i
+done
 
-# CLIENT
-java $APP_NAME $ACCESS_POINT BACKUP "ola.txt" 2
+start ./client.sh BACKUP test1.pdf 3
+# start ./client.sh RESTORE test1.pdf
+# start ./client.sh DELETE test1.pdf
+# start ./client.sh RECLAIM 0
+# start ./client.sh STATE
 
 $SHELL
