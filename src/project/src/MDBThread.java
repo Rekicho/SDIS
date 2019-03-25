@@ -14,8 +14,6 @@ public class MDBThread extends Thread {
     private void interpretMessage(byte[] buffer, int length) throws Exception{
         String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n");
 
-        int body_length = length - message[0].length() - 4;
-
         String[] args = message[0].trim().split(" ");
 
         if(!args[0].equals("PUTCHUNK"))
@@ -28,6 +26,8 @@ public class MDBThread extends Thread {
         Thread.sleep(r.nextInt(401));
 
         server.mc.send(responsePacket);
+
+        int body_length = length - message[0].length() - 4;
 
         PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
         writer.print(message[1].substring(0,body_length));

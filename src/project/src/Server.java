@@ -12,6 +12,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server implements ServerRMI {
     private String version;
@@ -29,34 +30,41 @@ public class Server implements ServerRMI {
     String mdr_host;
     int mdr_port;
 
+    AtomicInteger store_responses;
+
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    private static final int TTL = 1;
+    private final static int TTL = 1;
 
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-        this.mdb_host = mdb_host;
-        this.mdb_port = mdb_port;
         this.mc_host = mc_host;
         this.mc_port = mc_port;
+        this.mdb_host = mdb_host;
+        this.mdb_port = mdb_port;
         this.mdr_host = mc_host;
         this.mdr_port = mc_port;
 
-        mdb = new MulticastSocket(mdb_port);
-        mdb.joinGroup(InetAddress.getByName(mdb_host));
+        store_responses = new AtomicInteger(0);
 
         mc = new MulticastSocket(mc_port);
+        mc.setTimeToLive(TTL);
         mc.joinGroup(InetAddress.getByName(mc_host));
 
+        mdb = new MulticastSocket(mdb_port);
+        mdb.setTimeToLive(TTL);
+        mdb.joinGroup(InetAddress.getByName(mdb_host));
+
         mdr = new MulticastSocket(mdr_port);
+        mdr.setTimeToLive(TTL);
         mdr.joinGroup(InetAddress.getByName(mdr_host));
 
-        Thread mdb_listen = new MDBThread(this);
         Thread mc_listen = new MCThread(this);
+        Thread mdb_listen = new MDBThread(this);
         Thread mdr_listen = new MDRThread(this);
 
-        mdb_listen.start();
         mc_listen.start();
+        mdb_listen.start();
         mdr_listen.start();
     }
 
@@ -110,22 +118,29 @@ public class Server implements ServerRMI {
         try {
             do {
                 count = fileToBackup.read(buffer);
-                header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
+                int tries = 0;
+                store_responses.set(0);
 
-                byte[] message = new byte[header.length + count];
+                do {
+                    store_responses = new AtomicInteger(0);
+                    header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
-                System.arraycopy(header, 0, message, 0, header.length);
-                System.arraycopy(buffer, 0, message, header.length, count);
+                    byte[] message = new byte[header.length + count];
 
-                DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
-                mdb.setTimeToLive(TTL);
-                mdb.send(chunkPacket);
+                    System.arraycopy(header, 0, message, 0, header.length);
+                    System.arraycopy(buffer, 0, message, header.length, count);
 
-                byte[] receive = new byte[100];
-                DatagramPacket receivePacket = new DatagramPacket(receive, receive.length);
-                mc.receive(receivePacket);
+                    DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
+                    mdb.send(chunkPacket);
 
-                System.out.println(new String(receive).substring(0,6));
+                    Thread.sleep(tries * 1000);
+
+                    if(store_responses.get() == Integer.parseInt(args[1]))
+                        break;
+
+                    tries++;
+                }
+                while(tries != 5);
 
                 chunkNo++;
             } while (count == 64000);
@@ -137,7 +152,7 @@ public class Server implements ServerRMI {
     }
 
     public static void main(String[] args) {
-        if (args.length != 7) {
+        if (args.length != 9) {
             System.out.println("Usage: java Server <protocol_version> <server_id> <remote_object_name> <MC_IP> <MC_port> <MDB_IP> <MDB_port> <MDR_IP> <MDR_port>");
             System.exit(-1);
         }
