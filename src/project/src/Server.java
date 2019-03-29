@@ -12,11 +12,11 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.concurrent.ConcurrentHashMap;
 public class Server implements ServerRMI {
     private String version;
     private int id;
+    private int disk_space;
 
     MulticastSocket mc;
     String mc_host;
@@ -30,14 +30,15 @@ public class Server implements ServerRMI {
     String mdr_host;
     int mdr_port;
 
-    AtomicInteger store_responses;
+    ConcurrentHashMap<String,BackupFile> backedupFiles;
+    ConcurrentHashMap<String,Chunk> storedChunks;
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    private final static int TTL = 1;
 
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
+        this.disk_space = 1000;
         this.mc_host = mc_host;
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
@@ -45,19 +46,17 @@ public class Server implements ServerRMI {
         this.mdr_host = mc_host;
         this.mdr_port = mc_port;
 
-        store_responses = new AtomicInteger(0);
-
         mc = new MulticastSocket(mc_port);
-        mc.setTimeToLive(TTL);
         mc.joinGroup(InetAddress.getByName(mc_host));
 
         mdb = new MulticastSocket(mdb_port);
-        mdb.setTimeToLive(TTL);
         mdb.joinGroup(InetAddress.getByName(mdb_host));
 
         mdr = new MulticastSocket(mdr_port);
-        mdr.setTimeToLive(TTL);
         mdr.joinGroup(InetAddress.getByName(mdr_host));
+
+        backedupFiles = new ConcurrentHashMap<>();
+        storedChunks = new ConcurrentHashMap<>();
 
         Thread mc_listen = new MCThread(this);
         Thread mdb_listen = new MDBThread(this);
@@ -97,21 +96,24 @@ public class Server implements ServerRMI {
     public String backup(String request) {
         String[] args = request.trim().split(" ", 2);
 
-        File backupfile;
+        File file;
         InputStream fileToBackup;
 
         try {
-            backupfile = new File(args[0]);
-            fileToBackup = new FileInputStream(backupfile);
+            file = new File(args[0]);
+            fileToBackup = new FileInputStream(file);
 
         } catch (Exception e) {
             return "FILE_NOT_FOUND";
         }
 
-        String fileId = generateId(backupfile);
+        String fileId = generateId(file);
+
+        BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
+        backedupFiles.put(args[0],backupFile);
 
         int count;
-        long chunkNo = 0;
+        int chunkNo = 0;
         byte[] buffer = new byte[64000];
         byte[] header;
 
@@ -119,23 +121,24 @@ public class Server implements ServerRMI {
             do {
                 count = fileToBackup.read(buffer);
                 int tries = 0;
-                store_responses.set(0);
+                header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
+
+                byte[] message = new byte[header.length + count];
+
+                System.arraycopy(header, 0, message, 0, header.length);
+                System.arraycopy(buffer, 0, message, header.length, count);
+
+                DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
+
+                Chunk chunk = new Chunk(chunkNo, message.length);
+                backupFile.chunks.put(chunkNo,chunk);
 
                 do {
-                    store_responses = new AtomicInteger(0);
-                    header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
-
-                    byte[] message = new byte[header.length + count];
-
-                    System.arraycopy(header, 0, message, 0, header.length);
-                    System.arraycopy(buffer, 0, message, header.length, count);
-
-                    DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
                     mdb.send(chunkPacket);
 
                     Thread.sleep(tries * 1000);
 
-                    if(store_responses.get() == Integer.parseInt(args[1]))
+                    if(chunk.storedServers.size() == Integer.parseInt(args[1]))
                         break;
 
                     tries++;
