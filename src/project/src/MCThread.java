@@ -1,7 +1,7 @@
 import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
 
-public class MCThread extends Thread {
+public class MCThread implements Runnable {
     private Server server;
 
     MCThread(Server server){
@@ -27,10 +27,21 @@ public class MCThread extends Thread {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
             try {
                 server.mc.receive(receivePacket);
-                interpretMessage(buffer);
             } catch (Exception e) {
-                return;
+                System.err.println("MC channel error");
+                System.exit(0);
             }
+            server.executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        interpretMessage(buffer);
+                    } catch (Exception e) {
+                        System.err.println("MC channel error");
+                        System.exit(0);
+                    }
+                }
+            });
         }
     }
 }

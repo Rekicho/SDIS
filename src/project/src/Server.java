@@ -14,6 +14,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class Server implements ServerRMI {
     private String version;
@@ -34,6 +36,8 @@ public class Server implements ServerRMI {
 
     ConcurrentHashMap<String,BackupFile> backedupFiles;
     ConcurrentHashMap<String,Chunk> storedChunks;
+
+    ThreadPoolExecutor executor;
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
@@ -60,13 +64,10 @@ public class Server implements ServerRMI {
         backedupFiles = new ConcurrentHashMap<>();
         storedChunks = new ConcurrentHashMap<>();
 
-        Thread mc_listen = new MCThread(this);
-        Thread mdb_listen = new MDBThread(this);
-        Thread mdr_listen = new MDRThread(this);
-
-        mc_listen.start();
-        mdb_listen.start();
-        mdr_listen.start();
+        executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(10);
+        executor.execute(new MCThread(this));
+        executor.execute(new MDBThread(this));
+        executor.execute(new MDRThread(this));
     }
 
     String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {

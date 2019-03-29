@@ -1,4 +1,4 @@
-public class MDRThread extends Thread {
+public class MDRThread implements Runnable {
     private Server server;
 
     MDRThread(Server server){
