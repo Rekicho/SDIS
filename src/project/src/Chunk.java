@@ -1,15 +1,17 @@
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Chunk {
-    int id;
-    Integer size;
-    ConcurrentSkipListSet<Integer> storedServers;
+    String id;
+    int size;
+    int expectedReplicationDegree;
+    AtomicInteger storedServers;
 
-    Chunk(int id, Integer size)
+    Chunk(String id, int size, int expectedReplicationDegree)
     {
         this.id = id;
         this.size = size;
-        storedServers = new ConcurrentSkipListSet<>();
+        this.expectedReplicationDegree = expectedReplicationDegree;
+        storedServers = new AtomicInteger();
     }
 }

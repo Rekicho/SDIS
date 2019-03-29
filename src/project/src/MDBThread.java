@@ -16,7 +16,7 @@ public class MDBThread extends Thread {
 
         String[] args = message[0].trim().split(" ");
 
-        if(!args[0].equals("PUTCHUNK"))
+        if(!args[0].equals("PUTCHUNK") || Integer.parseInt(args[2]) == server.id)
             return;
 
         byte[] response = server.header("STORED", args[3], Integer.parseInt(args[4]), null).getBytes();
@@ -27,7 +27,12 @@ public class MDBThread extends Thread {
 
         server.mc.send(responsePacket);
 
+        if(server.storedChunks.get(args[3] + "_" + args[4]) != null)
+            return;
+
         int body_length = length - message[0].length() - 4;
+
+        server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + " " + args[4],body_length,Integer.parseInt(args[5])));
 
         PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
         writer.print(message[1].substring(0,body_length));

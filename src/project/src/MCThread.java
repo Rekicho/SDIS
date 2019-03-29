@@ -14,7 +14,11 @@ public class MCThread extends Thread {
         if(!args[0].equals("STORED"))
             return;
 
-        server.backedupFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])).storedServers.add(Integer.parseInt(args[2]));
+        if(server.backedupFiles.get(args[3]) != null)
+            server.backedupFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])).add(Integer.parseInt(args[2]));
+
+        else if(server.storedChunks.get(args[3] + "_" + args[4]) != null)
+            server.storedChunks.get(args[3] + "_" + args[4]).storedServers.incrementAndGet();
     }
 
     public void run(){

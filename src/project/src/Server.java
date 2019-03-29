@@ -13,9 +13,11 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+
 public class Server implements ServerRMI {
     private String version;
-    private int id;
+    int id;
     private int disk_space;
 
     MulticastSocket mc;
@@ -130,15 +132,14 @@ public class Server implements ServerRMI {
 
                 DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
 
-                Chunk chunk = new Chunk(chunkNo, message.length);
-                backupFile.chunks.put(chunkNo,chunk);
+                backupFile.chunks.put(chunkNo,new ConcurrentSkipListSet<>());
 
                 do {
                     mdb.send(chunkPacket);
 
                     Thread.sleep(tries * 1000);
 
-                    if(chunk.storedServers.size() == Integer.parseInt(args[1]))
+                    if(backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
                         break;
 
                     tries++;
