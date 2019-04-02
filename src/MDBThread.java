@@ -15,6 +15,9 @@ public class MDBThread implements Runnable {
     private void interpretMessage(byte[] buffer, int length) throws Exception {
         String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n",2);
 
+        System.out.println("[Peer " + server.id + " MDB] " + message[0]);
+        System.out.flush();
+
         String[] args = message[0].trim().split(" ");
 
         if (!args[0].equals("PUTCHUNK") || Integer.parseInt(args[2]) == server.id)
@@ -35,6 +38,7 @@ public class MDBThread implements Runnable {
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + " " + args[4], body_length, Integer.parseInt(args[5])));
 
+        server.space_used += body_length;
         new File("peer" + server.id + "/backup/" + args[3]).mkdirs();
         PrintWriter writer = new PrintWriter("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4], "ASCII");
         writer.print(message[1].substring(0, body_length));

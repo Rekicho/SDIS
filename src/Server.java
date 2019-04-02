@@ -21,6 +21,7 @@ public class Server implements ServerRMI {
     private String version;
     int id;
     private int disk_space;
+    int space_used = 0;
 
     MulticastSocket mc;
     String mc_host;
@@ -49,12 +50,8 @@ public class Server implements ServerRMI {
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
         this.mdb_port = mdb_port;
-        this.mdr_host = mc_host;
-        this.mdr_port = mc_port;
-
-        new File("peer" + id).mkdirs();
-        new File("peer" + id + "/backup").mkdirs();
-        new File("peer" + id + "/restored").mkdirs();
+        this.mdr_host = mdr_host;
+        this.mdr_port = mdr_port;    
 
         mc = new MulticastSocket(mc_port);
         mc.joinGroup(InetAddress.getByName(mc_host));
@@ -68,10 +65,45 @@ public class Server implements ServerRMI {
         backedupFiles = new ConcurrentHashMap<>();
         storedChunks = new ConcurrentHashMap<>();
 
+        loadInfo();
+        
+
         executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(10);
         executor.execute(new MCThread(this));
         executor.execute(new MDBThread(this));
         executor.execute(new MDRThread(this));
+    }
+
+    private void loadFileChunkInfo(String path, String fileName) {
+        File folder = new File(path + "/" + fileName);
+        for(File file : folder.listFiles()) {
+            String name = file.getName();
+            if(name.substring(name.length()-4).equals(".ser")) {
+                storedChunks.put(fileName + "_" + name.substring(3,name.length()-3), Chunk.loadChunkFile(path + "/" + fileName + "/" + name));
+            }
+        }
+    }
+
+    private void loadInfo() {
+        String backup_path = "peer" + id + "/backup";
+        Path path = Paths.get("peer" + id);
+        if(Files.exists(path)){
+            File folder = new File(backup_path);
+            for (File fileEntry : folder.listFiles()){
+                if(fileEntry.isDirectory()){
+                    loadFileChunkInfo(backup_path, fileEntry.getName());
+                }
+                else if(fileEntry.getName().substring(fileEntry.getName().length()-4).equals(".ser")) { 
+                    backedupFiles.put(fileEntry.getName(), BackupFile.loadBackupFile(backup_path + "/" + fileEntry.getName()));
+                }
+            }    
+        }
+        else{
+            new File("peer" + id).mkdirs();
+            new File("peer" + id + "/backup").mkdirs();
+            new File("peer" + id + "/restored").mkdirs();
+        }
+ 
     }
 
     String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {
@@ -101,6 +133,8 @@ public class Server implements ServerRMI {
     }
 
     public String backup(String request) {
+        System.out.println("[Peer " + this.id + "] BACKUP " + request);
+        System.out.flush();
         String[] args = request.trim().split(" ", 2);
 
         File file;
@@ -119,6 +153,9 @@ public class Server implements ServerRMI {
         BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
         backedupFiles.put(args[0],backupFile);
         backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
+
+        System.out.println("[Peer " + id + "] Sending file " + fileId);
+        System.out.flush();
 
         int count;
         int chunkNo = 0;
@@ -140,10 +177,12 @@ public class Server implements ServerRMI {
 
                 backupFile.chunks.put(chunkNo,new ConcurrentSkipListSet<>());
                 backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
-
+                
                 do {
+                    System.out.println("[Peer " + id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
+                    System.out.flush();
                     mdb.send(chunkPacket);
-
+                    
                     Thread.sleep(tries * 1000);
 
                     if(backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
@@ -176,10 +215,17 @@ public class Server implements ServerRMI {
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(args[2], stub);
 
-            System.out.println("Server ready");
+            System.out.println("[Peer" + args[1]  +"] Ready");
+            System.out.flush();
         } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
+            System.err.println("[Peer " + args[1] + "] Exception: " + e.toString());
             e.printStackTrace();
         }
     }
+
+    public void safePrintln(String s) {
+        synchronized (System.out) {
+          System.out.println(s);
+        }
+      }
 }

@@ -1,4 +1,6 @@
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +20,20 @@ public class BackupFile implements Serializable {
         chunks = new ConcurrentHashMap<>();
     }
 
+    static BackupFile loadBackupFile(String path) {
+        try {
+            FileInputStream file = new FileInputStream(path);
+            ObjectInputStream in = new ObjectInputStream(file);
+
+            BackupFile backup = (BackupFile) in.readObject();
+            in.close();
+            file.close();
+            return backup;
+        } catch (Exception e) {
+            return null;
+        }       
+    }
+
     void save(String path)
     {
         try {
@@ -25,6 +41,7 @@ public class BackupFile implements Serializable {
             ObjectOutputStream object = new ObjectOutputStream(file);
             object.writeObject(this);
             object.close();
+            file.close();
         } catch (Exception e) {
         }
     }
