@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -34,9 +35,12 @@ public class MDBThread implements Runnable {
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + " " + args[4], body_length, Integer.parseInt(args[5])));
 
-        PrintWriter writer = new PrintWriter(args[3] + "_" + args[4], "ASCII");
+        new File("peer" + server.id + "/backup/" + args[3]).mkdirs();
+        PrintWriter writer = new PrintWriter("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4], "ASCII");
         writer.print(message[1].substring(0, body_length));
         writer.close();
+
+        server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
     }
 
     public void run() {

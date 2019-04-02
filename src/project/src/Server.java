@@ -52,6 +52,10 @@ public class Server implements ServerRMI {
         this.mdr_host = mc_host;
         this.mdr_port = mc_port;
 
+        new File("peer" + id).mkdirs();
+        new File("peer" + id + "/backup").mkdirs();
+        new File("peer" + id + "/restored").mkdirs();
+
         mc = new MulticastSocket(mc_port);
         mc.joinGroup(InetAddress.getByName(mc_host));
 
@@ -114,6 +118,7 @@ public class Server implements ServerRMI {
 
         BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
         backedupFiles.put(args[0],backupFile);
+        backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
         int count;
         int chunkNo = 0;
@@ -134,6 +139,7 @@ public class Server implements ServerRMI {
                 DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
 
                 backupFile.chunks.put(chunkNo,new ConcurrentSkipListSet<>());
+                backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
                 do {
                     mdb.send(chunkPacket);

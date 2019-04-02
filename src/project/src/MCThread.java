@@ -11,14 +11,20 @@ public class MCThread implements Runnable {
     private void interpretMessage(byte[] buffer) {
         String[] args = new String(buffer, StandardCharsets.US_ASCII).trim().split(" ");
 
-        if(!args[0].equals("STORED"))
+        if(!args[0].equals("STORED") || Integer.parseInt(args[2]) == server.id)
             return;
 
         if(server.backedupFiles.get(args[3]) != null)
+        {
             server.backedupFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])).add(Integer.parseInt(args[2]));
+            server.backedupFiles.get(args[3]).save("peer" + server.id + "/backup/" + args[3] + ".ser");
+        }
 
         else if(server.storedChunks.get(args[3] + "_" + args[4]) != null)
+        {
             server.storedChunks.get(args[3] + "_" + args[4]).storedServers.incrementAndGet();
+            server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
+        }
     }
 
     public void run(){
