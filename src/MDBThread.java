@@ -16,7 +16,6 @@ public class MDBThread implements Runnable {
         String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n",2);
 
         System.out.println("[Peer " + server.id + " MDB] " + message[0]);
-        System.out.flush();
 
         String[] args = message[0].trim().split(" ");
 

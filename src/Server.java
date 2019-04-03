@@ -133,8 +133,7 @@ public class Server implements ServerRMI {
     }
 
     public String backup(String request) {
-        System.out.println("[Peer " + this.id + "] BACKUP " + request);
-        System.out.flush();
+        System.out.println("[Peer " + this.id + "] BACKUP " + request.trim());
         String[] args = request.trim().split(" ", 2);
 
         File file;
@@ -150,12 +149,11 @@ public class Server implements ServerRMI {
 
         String fileId = generateId(file);
 
-        BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
-        backedupFiles.put(args[0],backupFile);
+		BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
+        backedupFiles.put(fileId,backupFile);
         backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
         System.out.println("[Peer " + id + "] Sending file " + fileId);
-        System.out.flush();
 
         int count;
         int chunkNo = 0;
@@ -165,7 +163,7 @@ public class Server implements ServerRMI {
         try {
             do {
                 count = fileToBackup.read(buffer);
-                int tries = 0;
+                int tries = 1;
                 header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
                 byte[] message = new byte[header.length + count];
@@ -180,10 +178,9 @@ public class Server implements ServerRMI {
                 
                 do {
                     System.out.println("[Peer " + id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
-                    System.out.flush();
                     mdb.send(chunkPacket);
                     
-                    Thread.sleep(tries * 1000);
+					Thread.sleep(tries * 1000);
 
                     if(backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
                         break;
@@ -216,16 +213,9 @@ public class Server implements ServerRMI {
             registry.rebind(args[2], stub);
 
             System.out.println("[Peer" + args[1]  +"] Ready");
-            System.out.flush();
         } catch (Exception e) {
             System.err.println("[Peer " + args[1] + "] Exception: " + e.toString());
             e.printStackTrace();
         }
     }
-
-    public void safePrintln(String s) {
-        synchronized (System.out) {
-          System.out.println(s);
-        }
-      }
 }

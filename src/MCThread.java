@@ -9,13 +9,12 @@ public class MCThread implements Runnable {
     }
 
     private void interpretMessage(byte[] buffer) {
-        System.out.println("[Peer " + server.id + " MC] " + new String(buffer));
-        System.out.flush();
+        System.out.println("[Peer " + server.id + " MC] " + (new String(buffer).trim()));
 
         String[] args = new String(buffer, StandardCharsets.US_ASCII).trim().split(" ");
 
         if(!args[0].equals("STORED") || Integer.parseInt(args[2]) == server.id)
-            return;
+			return;
 
         if(server.backedupFiles.get(args[3]) != null)
         {

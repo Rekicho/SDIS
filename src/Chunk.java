@@ -23,7 +23,7 @@ public class Chunk implements Serializable {
             FileInputStream file = new FileInputStream(path);
             ObjectInputStream in = new ObjectInputStream(file);
 
-            Chunk chunk = (Chunk) in.readObject();
+			Chunk chunk = (Chunk) in.readObject();
             in.close();
             file.close();
 
