@@ -22,14 +22,22 @@ public class TestApp {
                     response = stub.backup(backup);
                     System.out.println("BACKUP " + backup + " : " + response);
 					break;
-					
-					case "DELETE":
+
+				case "RESTORE":
                     if(args.length != 3)
-                        System.out.println("Usage: java TestApp <peer_ap> BACKUP <file>");
+                        System.out.println("Usage: java TestApp <peer_ap> RESTORE <file>");
+
+                    response = stub.restore(args[2]);
+                    System.out.println("RESTORE " + args[2] + " : " + response);
+                    break;
+				
+				case "DELETE":
+                    if(args.length != 3)
+                        System.out.println("Usage: java TestApp <peer_ap> DELETE <file>");
 
                     response = stub.delete(args[2]);
                     System.out.println("DELETE " + args[2] + " : " + response);
-                    break;
+					break;
 
                 default: System.exit(0);
             }

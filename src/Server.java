@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.io.PrintWriter;
 
 public class Server implements ServerRMI {
     private String version;
@@ -81,7 +82,7 @@ public class Server implements ServerRMI {
 			if(name.substring(name.length()-4).equals(".ser")) {
 				Chunk chunk = Chunk.loadChunkFile(path + "/" + fileName + "/" + name);
 				space_used += chunk.size;
-                storedChunks.put(fileName + "_" + name.substring(3,name.length()-3), chunk);
+                storedChunks.put(fileName + "_" + name.substring(0,name.length()-4), chunk);
             }
         }
     }
@@ -96,7 +97,7 @@ public class Server implements ServerRMI {
                     loadFileChunkInfo(backup_path, fileEntry.getName());
                 }
                 else if(fileEntry.getName().substring(fileEntry.getName().length()-4).equals(".ser")) { 
-                    backedupFiles.put(fileEntry.getName(), BackupFile.loadBackupFile(backup_path + "/" + fileEntry.getName()));
+					backedupFiles.put(fileEntry.getName().substring(0,fileEntry.getName().length()-4), BackupFile.loadBackupFile(backup_path + "/" + fileEntry.getName()));
                 }
             }    
         }
@@ -153,9 +154,9 @@ public class Server implements ServerRMI {
             return "FILE_NOT_FOUND";
         }
 
-        String fileId = generateId(file);
+		String fileId = generateId(file);
 
-		BackupFile backupFile = new BackupFile(args[0],fileId,Integer.parseInt(args[1]));
+		BackupFile backupFile = new BackupFile(file.getName(),fileId,Integer.parseInt(args[1]));
         backedupFiles.put(fileId,backupFile);
         backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
@@ -202,6 +203,35 @@ public class Server implements ServerRMI {
         }
 
         return "STORED";
+	}
+
+	public String restore(String request){
+		request = request.trim();
+		System.out.println("[Peer " + this.id + "] Restore " + request);
+
+		File file;
+
+        try {
+            file = new File(request);
+
+        } catch (Exception e) {
+            return "FILE_NOT_FOUND";
+        }
+
+		String fileId = generateId(file);
+		BackupFile backupFile;
+
+		if((backupFile = backedupFiles.get(fileId)) == null)
+			return "FILE_NOT_BACKED_UP";
+
+		try {
+			PrintWriter writer = new PrintWriter("peer" + id + "/restored/" + request);
+			writer.close();
+		} catch (Exception e) {
+			return "COULD_NOT_WRITE_FILE";
+		}
+
+		return "RESTORED";
 	}
 	
 	public String delete(String request) {
