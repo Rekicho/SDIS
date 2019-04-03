@@ -10,7 +10,8 @@ public class TestApp {
 
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
-            ServerRMI stub = (ServerRMI) registry.lookup(args[0]);
+			ServerRMI stub = (ServerRMI) registry.lookup(args[0]);
+			String response;
 
             switch (args[1]) {
                 case "BACKUP":
@@ -18,8 +19,17 @@ public class TestApp {
                         System.out.println("Usage: java TestApp <peer_ap> BACKUP <file> <replication_degree>");
 
                     String backup = args[2] + " " + args[3];
-                    String response = stub.backup(backup);
+                    response = stub.backup(backup);
                     System.out.println("BACKUP " + backup + " : " + response);
+					break;
+					
+					case "DELETE":
+                    if(args.length != 4)
+                        System.out.println("Usage: java TestApp <peer_ap> BACKUP <file>");
+
+                    String delete = args[2] + " " + args[3];
+                    response = stub.delete(delete);
+                    System.out.println("DELETE " + delete + " : " + response);
                     break;
 
                 default: System.exit(0);

@@ -78,8 +78,10 @@ public class Server implements ServerRMI {
         File folder = new File(path + "/" + fileName);
         for(File file : folder.listFiles()) {
             String name = file.getName();
-            if(name.substring(name.length()-4).equals(".ser")) {
-                storedChunks.put(fileName + "_" + name.substring(3,name.length()-3), Chunk.loadChunkFile(path + "/" + fileName + "/" + name));
+			if(name.substring(name.length()-4).equals(".ser")) {
+				Chunk chunk = Chunk.loadChunkFile(path + "/" + fileName + "/" + name);
+				space_used += chunk.size;
+                storedChunks.put(fileName + "_" + name.substring(3,name.length()-3), chunk);
             }
         }
     }
@@ -196,7 +198,11 @@ public class Server implements ServerRMI {
         }
 
         return "STORED";
-    }
+	}
+	
+	public String delete(String request) {
+		return "DELETE";
+	}
 
     public static void main(String[] args) {
         if (args.length != 9) {
