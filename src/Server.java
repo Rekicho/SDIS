@@ -108,9 +108,19 @@ public class Server implements ServerRMI {
  
     }
 
-    String header(String message_type, String fileId, long chunkNo, Integer replicationDeg) {
-        return message_type + " " + version + " " + id + " " + fileId + " " + chunkNo + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
-    }
+    String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg) {
+        return message_type + " " + version + " " + id + " " + fileId + " " + (chunkNo != null ? chunkNo.longValue() : "") + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
+	}
+	
+	private char[] hexString(byte[] info){
+		char[] hexChars = new char[info.length * 2];
+		for (int j = 0; j < info.length; j++) {
+			int v = info[j] & 0xFF;
+			hexChars[j * 2] = hexArray[v >>> 4];
+			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+		}
+		return hexChars;
+	}
 
     private String generateId(File file) {
         try {
@@ -121,22 +131,16 @@ public class Server implements ServerRMI {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] info = digest.digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
 
-            char[] hexChars = new char[info.length * 2];
-            for (int j = 0; j < info.length; j++) {
-                int v = info[j] & 0xFF;
-                hexChars[j * 2] = hexArray[v >>> 4];
-                hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-            }
-
-            return new String(hexChars);
+            return new String(hexString(info));
         } catch (Exception e) {
             return file.getName();
         }
     }
 
     public String backup(String request) {
-        System.out.println("[Peer " + this.id + "] BACKUP " + request.trim());
-        String[] args = request.trim().split(" ", 2);
+		request = request.trim();
+        System.out.println("[Peer " + this.id + "] BACKUP " + request);
+        String[] args = request.split(" ", 2);
 
         File file;
         InputStream fileToBackup;
@@ -201,7 +205,38 @@ public class Server implements ServerRMI {
 	}
 	
 	public String delete(String request) {
-		return "DELETE";
+		request = request.trim();
+		System.out.println("[Peer " + this.id + "] DELETE " + request);
+
+		File file;
+
+        try {
+            file = new File(request);
+
+        } catch (Exception e) {
+            return "FILE_NOT_FOUND";
+        }
+
+		String fileId = generateId(file);
+
+		backedupFiles.remove(fileId);
+
+		try {
+            new File("peer" + id + "/backup/" + fileId + ".ser").delete();
+        } catch (Exception e) {
+        }
+
+		try{
+			byte[] header = header("DELETE", fileId, null, null).getBytes();
+			DatagramPacket deletePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+	
+			System.out.println("[Peer " + id + "] Delete file " + fileId);
+			mc.send(deletePacket);
+		} catch(Exception e) {
+			return "ERROR";
+		}
+	
+		return "DELETED";
 	}
 
     public static void main(String[] args) {
@@ -218,7 +253,7 @@ public class Server implements ServerRMI {
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(args[2], stub);
 
-            System.out.println("[Peer" + args[1]  +"] Ready");
+            System.out.println("[Peer " + args[1]  +"] Ready");
         } catch (Exception e) {
             System.err.println("[Peer " + args[1] + "] Exception: " + e.toString());
             e.printStackTrace();

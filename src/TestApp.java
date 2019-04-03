@@ -24,12 +24,11 @@ public class TestApp {
 					break;
 					
 					case "DELETE":
-                    if(args.length != 4)
+                    if(args.length != 3)
                         System.out.println("Usage: java TestApp <peer_ap> BACKUP <file>");
 
-                    String delete = args[2] + " " + args[3];
-                    response = stub.delete(delete);
-                    System.out.println("DELETE " + delete + " : " + response);
+                    response = stub.delete(args[2]);
+                    System.out.println("DELETE " + args[2] + " : " + response);
                     break;
 
                 default: System.exit(0);

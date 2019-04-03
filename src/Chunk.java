@@ -6,12 +6,12 @@ import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Chunk implements Serializable {
-    String id;
+    int id;
     int size;
     int expectedReplicationDegree;
     AtomicInteger storedServers;
 
-    Chunk(String id, int size, int expectedReplicationDegree) {
+    Chunk(int id, int size, int expectedReplicationDegree) {
         this.id = id;
         this.size = size;
         this.expectedReplicationDegree = expectedReplicationDegree;
