@@ -37,7 +37,8 @@ public class Server implements ServerRMI {
     int mdr_port;
 
     ConcurrentHashMap<String,BackupFile> backedupFiles;
-    ConcurrentHashMap<String,Chunk> storedChunks;
+	ConcurrentHashMap<String,Chunk> storedChunks;
+	ConcurrentHashMap<String,String> restoredChunk;
 
     ThreadPoolExecutor executor;
 
@@ -64,10 +65,10 @@ public class Server implements ServerRMI {
         mdr.joinGroup(InetAddress.getByName(mdr_host));
 
         backedupFiles = new ConcurrentHashMap<>();
-        storedChunks = new ConcurrentHashMap<>();
+		storedChunks = new ConcurrentHashMap<>();
+		restoredChunk = new ConcurrentHashMap<>();
 
         loadInfo();
-        
 
         executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(10);
         executor.execute(new MCThread(this));
@@ -224,13 +225,50 @@ public class Server implements ServerRMI {
 		if((backupFile = backedupFiles.get(fileId)) == null)
 			return "FILE_NOT_BACKED_UP";
 
+		PrintWriter writer;
+
 		try {
-			PrintWriter writer = new PrintWriter("peer" + id + "/restored/" + request);
-			writer.close();
+			writer = new PrintWriter("peer" + id + "/restored/" + request);
 		} catch (Exception e) {
 			return "COULD_NOT_WRITE_FILE";
 		}
 
+		byte[] header;
+		DatagramPacket restorePacket;
+
+		for(int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++)
+		{
+			header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
+			try {
+				restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+	
+				System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
+				mc.send(restorePacket);
+			} catch(Exception e) {
+				return "ERROR";
+			}
+
+			String chunk;
+		
+			while(true) {
+				try {
+					Thread.sleep(500);
+				} catch (Exception e) {
+					return "ERROR";
+				}
+				
+				
+				if ((chunk = restoredChunk.get(fileId + "_" + chunkNo)) == null)
+					continue;
+
+				restoredChunk.remove(fileId + "_" + chunkNo);
+
+				writer.print(chunk);
+				break;
+			}			
+		}
+
+		writer.close();
 		return "RESTORED";
 	}
 	
