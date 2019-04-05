@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.io.PrintWriter;
+import java.util.Enumeration;
 
 public class Server implements ServerRMI {
     private String version;
@@ -305,6 +306,35 @@ public class Server implements ServerRMI {
 		}
 	
 		return "DELETED";
+	}
+
+	public String state() {
+		String res = "Backed Up Files:\n";
+		
+		Enumeration<String> keys = backedupFiles.keys();
+		String key;
+
+		while(keys.hasMoreElements())
+		{
+			key = keys.nextElement();
+
+			res += backedupFiles.get(key) + "\n";
+		}
+		
+		res += "Stored Chunks:\n";
+
+		keys = storedChunks.keys();
+
+		while(keys.hasMoreElements())
+		{
+			key = keys.nextElement();
+
+			res += "\tID: " + key + "_" + storedChunks.get(key) + "\n";
+		}
+
+		res += "Stored Capacity: " + disk_space + "\nStorage Used: " + space_used + "\n";
+
+		return res;
 	}
 
     public static void main(String[] args) {

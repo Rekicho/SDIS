@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.Enumeration;
 
 public class BackupFile implements Serializable {
     String name;
@@ -44,5 +45,23 @@ public class BackupFile implements Serializable {
             file.close();
         } catch (Exception e) {
         }
-    }
+	}
+	
+	public String toString() {
+		String res = "";
+
+		res += "\tName: " + name + "\n\tFileID: " + fileID + "\n\tReplication Degree: " + replicationDegree + "\n\tChunks:\n";
+
+		Enumeration<Integer> keys = chunks.keys();
+		Integer key;
+
+		while(keys.hasMoreElements())
+		{
+			key = keys.nextElement();
+
+			res += "\t\t" + "ID: " + key + "\n\t\tPerceived Replication Degree: " + chunks.get(key).size() + "\n";
+		}	
+
+		return res;
+	}
 }

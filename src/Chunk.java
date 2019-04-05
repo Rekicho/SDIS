@@ -42,5 +42,13 @@ public class Chunk implements Serializable {
             file.close();
         } catch (Exception e) {
         }
-    }
+	}
+	
+	public String toString(){
+		String res = "";
+
+		res += id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedServers + "\n";
+
+		return res;
+	}
 }

@@ -15,8 +15,11 @@ public class TestApp {
 
             switch (args[1]) {
                 case "BACKUP":
-                    if(args.length != 4)
-                        System.out.println("Usage: java TestApp <peer_ap> BACKUP <file> <replication_degree>");
+					if(args.length != 4)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> BACKUP <file> <replication_degree>");
+						System.exit(1);
+					}
 
                     String backup = args[2] + " " + args[3];
                     response = stub.backup(backup);
@@ -24,22 +27,39 @@ public class TestApp {
 					break;
 
 				case "RESTORE":
-                    if(args.length != 3)
-                        System.out.println("Usage: java TestApp <peer_ap> RESTORE <file>");
+					if(args.length != 3)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> RESTORE <file>");
+						System.exit(1);
+					}
 
                     response = stub.restore(args[2]);
                     System.out.println("RESTORE " + args[2] + " : " + response);
                     break;
 				
 				case "DELETE":
-                    if(args.length != 3)
-                        System.out.println("Usage: java TestApp <peer_ap> DELETE <file>");
+					if(args.length != 3)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> DELETE <file>");
+						System.exit(1);
+					}
 
                     response = stub.delete(args[2]);
                     System.out.println("DELETE " + args[2] + " : " + response);
 					break;
 
-                default: System.exit(0);
+					case "STATE":
+					if(args.length != 2)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> STATE");
+						System.exit(1);
+					}
+
+                    response = stub.state();
+                    System.out.println("STATE:\n" + response);
+					break;
+
+                default: System.exit(1);
             }
 
         } catch (Exception e) {
