@@ -1,9 +1,10 @@
 import java.io.File;
-import java.io.PrintWriter;
+import java.io.FileOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
+import java.util.Arrays;
 
 public class MDBThread implements Runnable {
     private Server server;
@@ -33,15 +34,20 @@ public class MDBThread implements Runnable {
         if (server.storedChunks.get(args[3] + "_" + args[4]) != null)
             return;
 
-        int body_length = length - message[0].length() - 4;
+		int i = 0;
+		for(; i < buffer.length && buffer[i] != 13; i++);
+	
+		i += 4;
+	
+		int body_length = length - i - 4;
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(Integer.parseInt(args[4]), body_length, Integer.parseInt(args[5])));
 
         server.space_used += body_length;
         new File("peer" + server.id + "/backup/" + args[3]).mkdirs();
-        PrintWriter writer = new PrintWriter("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4], "ASCII");
-        writer.print(message[1].substring(0, body_length));
-        writer.close();
+        FileOutputStream writer = new FileOutputStream("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]);
+        try{writer.write(Arrays.copyOfRange(buffer,i,length));
+        writer.close();}catch(Exception e){}
 
         server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
     }
@@ -63,7 +69,8 @@ public class MDBThread implements Runnable {
                     try {
                         interpretMessage(buffer, receivePacket.getLength());
                     } catch (Exception e) {
-                        System.err.println("MDB channel error");
+						System.err.println("MDB channel error");
+						e.printStackTrace();
                         System.exit(0);
                     }
                 }

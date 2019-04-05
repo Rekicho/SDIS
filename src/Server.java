@@ -16,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.io.PrintWriter;
+import java.io.FileOutputStream;
 import java.util.Enumeration;
+import java.util.Arrays;
 
 public class Server implements ServerRMI {
     private String version;
@@ -39,7 +40,7 @@ public class Server implements ServerRMI {
 
     ConcurrentHashMap<String,BackupFile> backedupFiles;
 	ConcurrentHashMap<String,Chunk> storedChunks;
-	ConcurrentHashMap<String,String> restoredChunk;
+	ConcurrentHashMap<String,byte[]> restoredChunk;
 
     ThreadPoolExecutor executor;
 
@@ -226,10 +227,10 @@ public class Server implements ServerRMI {
 		if((backupFile = backedupFiles.get(fileId)) == null)
 			return "FILE_NOT_BACKED_UP";
 
-		PrintWriter writer;
+		FileOutputStream writer;
 
 		try {
-			writer = new PrintWriter("peer" + id + "/restored/" + request);
+			writer = new FileOutputStream("peer" + id + "/restored/" + request);
 		} catch (Exception e) {
 			return "COULD_NOT_WRITE_FILE";
 		}
@@ -249,7 +250,7 @@ public class Server implements ServerRMI {
 				return "ERROR";
 			}
 
-			String chunk;
+			byte[] chunk;
 		
 			while(true) {
 				try {
@@ -264,12 +265,11 @@ public class Server implements ServerRMI {
 
 				restoredChunk.remove(fileId + "_" + chunkNo);
 
-				writer.print(chunk);
+				try{writer.write(chunk);}catch(Exception e){}
 				break;
 			}			
 		}
 
-		writer.close();
 		return "RESTORED";
 	}
 	

@@ -1,7 +1,7 @@
 import java.net.MulticastSocket;
-import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class MDRThread implements Runnable {
     private Server server;
@@ -20,9 +20,14 @@ public class MDRThread implements Runnable {
 		if (Integer.parseInt(args[2]) == server.id)
 			return;
 
-		int body_length = length - message[0].length() - 4;
+		int i = 0;
+		for(; i < buffer.length && buffer[i] != 13; i++);
+	
+		i += 4;
+	
+		int body_length = length - i - 4;
 
-		server.restoredChunk.put(args[3] + "_" + args[4], message[1].substring(0, body_length));
+		server.restoredChunk.put(args[3] + "_" + args[4], Arrays.copyOfRange(buffer,i,length));
 	}
 
     public void run() {

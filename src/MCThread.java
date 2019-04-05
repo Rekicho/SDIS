@@ -52,7 +52,7 @@ public class MCThread implements Runnable {
 			if(server.storedChunks.get(args[3] + "_" + args[4]) == null)
 				return;
 
-			InputStream fileToRestore;
+			FileInputStream fileToRestore;
 
 			try {
 				fileToRestore = new FileInputStream(new File("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]));
