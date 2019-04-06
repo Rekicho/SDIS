@@ -28,7 +28,7 @@ public class BackupFile implements Serializable {
     int replicationDegree;
 
     /**
-     * TODO
+     * Maps chunk id to the id of the Peer which has saved it
      */
     ConcurrentHashMap<Integer, ConcurrentSkipListSet<Integer>> chunks;
 
