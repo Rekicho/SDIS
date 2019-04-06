@@ -20,32 +20,97 @@ import java.io.FileOutputStream;
 import java.util.Enumeration;
 import java.util.Arrays;
 
+/**
+ * Class that represents a Peer
+ */
 public class Server implements ServerRMI {
+
+    /**
+     * Version of the Peer
+     */
     private String version;
+
+    /**
+     * Identifier of the Peer
+     */
     int id;
+
+    /**
+     * Maximum disk space available for use
+     */
     private int disk_space;
+    
+    /**
+     * Space ocuppied
+     */
     int space_used = 0;
 
+    /**
+     * Information of Control Channel
+     */
     MulticastSocket mc;
     String mc_host;
     int mc_port;
 
+    /**
+     * Information of Data Backup Channel
+     */
     MulticastSocket mdb;
     String mdb_host;
     int mdb_port;
 
+    /**
+     * Information of Data Recovery Channel
+     */
     MulticastSocket mdr;
     String mdr_host;
     int mdr_port;
 
+    /**
+     * Information for the BackedupFiles by this Peer
+     */
     ConcurrentHashMap<String,BackupFile> backedupFiles;
-	ConcurrentHashMap<String,Chunk> storedChunks;
+    
+    /**
+     * Information for the stored chunks by this Peer
+     */
+    ConcurrentHashMap<String,Chunk> storedChunks;
+
+    /**
+     * Information about the restored chunks by this Peer
+     */
 	ConcurrentHashMap<String,byte[]> restoredChunk;
 
+    /**
+     * Thread Pool for all the threads of this Peer
+     */
     ThreadPoolExecutor executor;
 
+    /**
+     * Auxiliar char array for hexadecimal conversion
+     */
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
+    /**
+     * Constructor for an object of Peer
+     * @param version
+     *              Version of the Peer
+     * @param id
+     *              Identifier of the Peer
+     * @param mc_host
+     *              Address of the Control Channel
+     * @param mc_port
+     *              Port of the Control Channel
+     * @param mdb_host
+     *              Address of the Data Backup Channel
+     * @param mdb_port
+     *              Port of the Data Backup Channel
+     * @param mdr_host
+     *              Address of the Data Recovery Channel
+     * @param mdr_port
+     *              Port of the Data Recovery Channel
+     * @throws Exception
+     */
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
@@ -78,6 +143,13 @@ public class Server implements ServerRMI {
         executor.execute(new MDRThread(this));
     }
 
+    /**
+     * Load information of the chunks saved in the Peer from a file
+     * @param path
+     *          Path of the file with the information
+     * @param fileName
+     *          Name of the file with the information
+     */
     private void loadFileChunkInfo(String path, String fileName) {
         File folder = new File(path + "/" + fileName);
         for(File file : folder.listFiles()) {
@@ -90,6 +162,9 @@ public class Server implements ServerRMI {
         }
     }
 
+    /**
+     * Load information about the Peer
+     */
     private void loadInfo() {
         String backup_path = "peer" + id + "/backup";
         Path path = Paths.get("peer" + id);
@@ -112,10 +187,30 @@ public class Server implements ServerRMI {
  
     }
 
+    /**
+     * Creates a String of a header formatted following the protocol rules
+     * @param message_type
+     *          Type of the message
+     * @param fileId
+     *          Identified of the file
+     * @param chunkNo
+     *          Number of the chunk
+     * @param replicationDeg
+     *          Replication degree
+     * @return
+     *          Header String
+     */
     String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg) {
         return message_type + " " + version + " " + id + " " + fileId + " " + (chunkNo != null ? chunkNo.longValue() : "") + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
 	}
-	
+    
+    /**
+     * Converter of a byte array into a char array
+     * @param info
+     *          Information to be converted
+     * @return
+     *          Char array
+     */
 	private char[] hexString(byte[] info){
 		char[] hexChars = new char[info.length * 2];
 		for (int j = 0; j < info.length; j++) {
@@ -126,6 +221,13 @@ public class Server implements ServerRMI {
 		return hexChars;
 	}
 
+    /**
+     * Identifier generator
+     * @param file
+     *          File for the identifier to be created
+     * @return
+     *          String with the name of the file
+     */
     private String generateId(File file) {
         try {
             Path path = Paths.get(file.getAbsolutePath());
@@ -141,6 +243,13 @@ public class Server implements ServerRMI {
         }
     }
 
+    /**
+     * Backup a file
+     * @param request
+     *          Request for the backup of a file
+     * @return
+     *          String with the information about the success or not of the function
+     */
     public String backup(String request) {
 		request = request.trim();
         System.out.println("[Peer " + this.id + "] BACKUP " + request);
@@ -208,6 +317,13 @@ public class Server implements ServerRMI {
         return "STORED";
 	}
 
+    /**
+     * Restore a file
+     * @param request
+     *          Request for the restoration of a file
+     * @return
+     *          String with the information about the success or not of the function
+     */
 	public String restore(String request){
 		request = request.trim();
 		System.out.println("[Peer " + this.id + "] Restore " + request);
@@ -272,7 +388,14 @@ public class Server implements ServerRMI {
 
 		return "RESTORED";
 	}
-	
+    
+    /**
+     * Delete a file
+     * @param request
+     *          Request for the deletion of a file
+     * @return
+     *          String with the information about the success or not of the function
+     */
 	public String delete(String request) {
 		request = request.trim();
 		System.out.println("[Peer " + this.id + "] DELETE " + request);
@@ -308,6 +431,11 @@ public class Server implements ServerRMI {
 		return "DELETED";
 	}
 
+    /**
+     * State of the Peer
+     * @return
+     *         Information about the state of the Peer
+     */
 	public String state() {
 		String res = "Backed Up Files:\n";
 		
@@ -337,6 +465,10 @@ public class Server implements ServerRMI {
 		return res;
 	}
 
+    /**
+     * Main function of the Peer
+     * @param args
+     */
     public static void main(String[] args) {
         if (args.length != 9) {
             System.out.println("Usage: java Server <protocol_version> <server_id> <remote_object_name> <MC_IP> <MC_port> <MDB_IP> <MDB_port> <MDR_IP> <MDR_port>");

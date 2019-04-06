@@ -6,13 +6,30 @@ import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Arrays;
 
+/**
+ * Thread for the Multicast Data Backup Channel
+ */
 public class MDBThread implements Runnable {
+    
+    /**
+	 * Peer associated with the Thread
+	 */
     private Server server;
 
+    /**
+	 * Constructor for the Multicast Data Backup Thread
+	 * @param server
+	 * 			Peer associated with the Thread
+	 */
     MDBThread(Server server) {
         this.server = server;
     }
 
+    /**
+	 * Interprets the message received
+	 * @param buffer
+	 * 			Buffer with the message content to be interpreted
+	 */
     private void interpretMessage(byte[] buffer, int length) throws Exception {
         String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n",2);
 
@@ -52,6 +69,9 @@ public class MDBThread implements Runnable {
         server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
     }
 
+    /**
+	 * Listener for the thread
+	 */
     public void run() {
         byte[] buffer = new byte[64100];
 
