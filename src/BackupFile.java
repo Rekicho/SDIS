@@ -7,25 +7,58 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.Enumeration;
 
+/**
+ *  Class that represents a backed up file
+ */
 public class BackupFile implements Serializable {
+
+    /**
+     * Name of the file
+     */
     String name;
+
+    /**
+     * Hash that represents the identified of the file
+     */
     String fileID;
+
+    /**
+     * Desired replication degree of the file
+     */
     int replicationDegree;
+
+    /**
+     * Maps chunk id to the id of the Peer which has saved it
+     */
     ConcurrentHashMap<Integer, ConcurrentSkipListSet<Integer>> chunks;
 
-    BackupFile(String name, String fileId, int replicationDegree)
-    {
+    /**
+     * Constructor for the class BackupFile
+     * @param name
+     *          Name of the backed up file
+     * @param fileId
+     *          Hash that represents the identifier of the file
+     * @param replicationDegree
+     *          Replication degree of the file
+     */
+    BackupFile(String name, String fileId, int replicationDegree) {
         this.name = name;
         this.fileID = fileId;
         this.replicationDegree = replicationDegree;
         chunks = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Create an object of BackupFile from a serializable file
+     * @param path
+     *          Path of the serializable file
+     * @return
+     *          Object of BackupFile with the information of the serializable file
+     */
     static BackupFile loadBackupFile(String path) {
         try {
             FileInputStream file = new FileInputStream(path);
             ObjectInputStream in = new ObjectInputStream(file);
-
             BackupFile backup = (BackupFile) in.readObject();
             in.close();
             file.close();
@@ -35,6 +68,11 @@ public class BackupFile implements Serializable {
         }       
     }
 
+    /**
+     * Saves the information of the object of the class BackupFile
+     * @param path
+     *          Path where the output file should be saved
+     */
     void save(String path)
     {
         try {
@@ -46,7 +84,10 @@ public class BackupFile implements Serializable {
         } catch (Exception e) {
         }
 	}
-	
+    
+    /**
+     * Create a string with all the information of the object BackupFile
+     */
 	public String toString() {
 		String res = "";
 

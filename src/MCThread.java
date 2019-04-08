@@ -7,13 +7,30 @@ import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.util.Random;
 
+/**
+ * Thread for the Multicast Control Channel
+ */
 public class MCThread implements Runnable {
+
+	/**
+	 * Peer associated with the Thread
+	 */
     private Server server;
 
+	/**
+	 * Constructor for the Multicast Control Channel Thread
+	 * @param server
+	 * 			Peer associated with the Thread
+	 */
     MCThread(Server server){
         this.server = server;
 	}
 	
+	/**
+	 * Deletes a folder
+	 * @param folder
+	 * 			Folder to be deleted
+	 */
 	public static void deleteFolder(File folder) {
 		File[] files = folder.listFiles();
 		if(files!=null) {
@@ -28,6 +45,11 @@ public class MCThread implements Runnable {
 		folder.delete();
 	}
 
+	/**
+	 * Interprets the message received
+	 * @param buffer
+	 * 			Buffer with the message content to be interpreted
+	 */
     private void interpretMessage(byte[] buffer) {
         System.out.println("[Peer " + server.id + " MC] " + (new String(buffer).trim()));
 
@@ -124,6 +146,9 @@ public class MCThread implements Runnable {
 	
     }
 
+	/**
+	 * Listener for the thread
+	 */
     public void run(){
         byte[] buffer = new byte[100];
         while(true) {

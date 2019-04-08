@@ -1,7 +1,12 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
+/**
+ * Class to represent Client acessing a peer server
+ */
 public class TestApp {
+
+	private final static String ADDRESS = "localhost";
     public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("Usage: java TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2>");
@@ -9,7 +14,7 @@ public class TestApp {
         }
 
         try {
-            Registry registry = LocateRegistry.getRegistry("localhost");
+            Registry registry = LocateRegistry.getRegistry(ADDRESS);
 			ServerRMI stub = (ServerRMI) registry.lookup(args[0]);
 			String response;
 
