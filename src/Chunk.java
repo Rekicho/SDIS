@@ -11,9 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Chunk implements Serializable, Comparable<Chunk> {
     
     /**
-     * Identifier of the Chunk (its order)
+     * Identifier of the Chunk
      */
-    int id;
+    String id;
 
     /**
      * Size of the Chunk in Bytes
@@ -39,7 +39,7 @@ public class Chunk implements Serializable, Comparable<Chunk> {
      * @param expectedReplicationDegree
      *          Expected Replication Degree of the Chunk
      */
-    Chunk(int id, int size, int expectedReplicationDegree) {
+    Chunk(String id, int size, int expectedReplicationDegree) {
         this.id = id;
         this.size = size;
         this.expectedReplicationDegree = expectedReplicationDegree;
@@ -87,11 +87,32 @@ public class Chunk implements Serializable, Comparable<Chunk> {
     /**
      * Create a string with all the information of the object Chunk
      */
-	public String toString(){
+	public String toString() {
 		String res = "";
 
 		res += id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedServers + "\n";
 
 		return res;
+	}
+
+	public int compareTo(Chunk other) {
+		int res = (other.size * (other.storedServers.get() - other.expectedReplicationDegree)) - (size * (storedServers.get() - expectedReplicationDegree));
+
+		if(res == 0)
+			return other.size - size;
+
+		return res;
+	}
+
+	public String getFileID() {
+		String[] info = id.split("_",2);
+
+		return info[0];
+	}
+
+	public String getChunkNo() {
+		String[] info = id.split("_",2);
+
+		return info[1];
 	}
 }

@@ -61,7 +61,7 @@ public class TestApp {
 					}
 
                     response = stub.reclaim(args[2]);
-                    System.out.println("DELETE " + args[2] + " : " + response);
+                    System.out.println("RECLAIM " + args[2] + " : " + response);
 					break;
 
 				case "STATE":

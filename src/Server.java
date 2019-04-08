@@ -19,7 +19,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.io.FileOutputStream;
 import java.util.Enumeration;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.PriorityQueue;
 
 /**
  * Class that represents a Peer
@@ -39,7 +39,7 @@ public class Server implements ServerRMI {
     /**
      * Maximum disk space available for use
      */
-    private int disk_space;
+    int disk_space;
     
     /**
      * Space ocuppied
@@ -433,12 +433,38 @@ public class Server implements ServerRMI {
 	}
 
 	public String reclaim(String request) {
-		disk_space = Integer.parseInt(request.trim());
+		int space_requested = Integer.parseInt(request.trim());
 
-		Collection<Chunk> set = storedChunks.values();
+		if(space_requested < 0)
+			return "INVALID SPACE SIZE";
 
-		while(space_used > disk_space){
+		disk_space = space_requested;
 
+		PriorityQueue<Chunk> chunks = new PriorityQueue<Chunk>(storedChunks.values());
+
+		byte[] header;
+		DatagramPacket removedPacket;
+
+		while(space_used > disk_space)
+		{
+			Chunk chunk = chunks.poll();
+			header = header("REMOVED", chunk.getFileID(), Integer.parseInt(chunk.getChunkNo()), null).getBytes();
+
+			try {
+				removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+				System.out.println("[Peer " + id + "] Removed file " + chunk.getFileID() + " chunk no." + chunk.getChunkNo());
+
+				mc.send(removedPacket); 
+			} catch(Exception e) {}
+
+			space_used -= chunk.size;
+			storedChunks.remove(chunk.id);
+
+			try {
+				new File("peer" + id + "/backup/" + chunk.getFileID() + "/chk" + chunk.getChunkNo()).delete();
+				new File("peer" + id + "/backup/" + chunk.getFileID() + "/chk" + chunk.getChunkNo() + ".ser").delete();
+			} catch (Exception e) {
+			}
 		}
 		
 		return "RECLAIMED";
