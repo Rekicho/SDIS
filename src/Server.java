@@ -125,7 +125,7 @@ public class Server implements ServerRMI {
         this.mdr_host = mdr_host;
         this.mdr_port = mdr_port;    
 
-        mc = new MulticastSocket(mc_port);
+		mc = new MulticastSocket(mc_port);
         mc.joinGroup(InetAddress.getByName(mc_host));
 
         mdb = new MulticastSocket(mdb_port);
@@ -444,19 +444,19 @@ public class Server implements ServerRMI {
 
 		PriorityQueue<Chunk> chunks = new PriorityQueue<Chunk>(storedChunks.values());
 
-		byte[] header;
-		DatagramPacket removedPacket;
-
 		while(space_used.get() > disk_space && !chunks.isEmpty())
 		{
 			Chunk chunk = chunks.poll();
-			header = header("REMOVED", chunk.getFileID(), Integer.parseInt(chunk.getChunkNo()), null).getBytes();
+			String fileId = chunk.getFileID();
+			int chunkNo = Integer.parseInt(chunk.getChunkNo());
+
+			byte[] header = header("REMOVED", fileId, chunkNo, null).getBytes();
 
 			try {
-				removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
-				System.out.println("[Peer " + id + "] Removed file " + chunk.getFileID() + " chunk no." + chunk.getChunkNo());
-
+				DatagramPacket removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
 				mc.send(removedPacket); 
+				Thread.sleep(50);
 			} catch(Exception e) {}
 
 			space_used.set(space_used.get() - chunk.size);			
@@ -467,6 +467,7 @@ public class Server implements ServerRMI {
 				new File("peer" + id + "/backup/" + chunk.getFileID() + "/chk" + chunk.getChunkNo() + ".ser").delete();
 			} catch (Exception e) {
 			}
+
 		}
 		
 		return "RECLAIMED";
