@@ -153,7 +153,6 @@ public class MCThread implements Runnable {
 			{
 				Chunk chunk = server.storedChunks.get(args[3] + "_" + args[4]);				
 				int actualRepDeg = chunk.storedServers.decrementAndGet();
-				System.out.println(actualRepDeg);
 				chunk.save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
 			
 				if(actualRepDeg >= chunk.expectedReplicationDegree)

@@ -110,9 +110,9 @@ public class Chunk implements Serializable, Comparable<Chunk> {
 		return info[0];
 	}
 
-	public String getChunkNo() {
+	public int getChunkNo() {
 		String[] info = id.split("_",2);
 
-		return info[1];
+		return (int) Integer.parseInt(info[1]);
 	}
 }

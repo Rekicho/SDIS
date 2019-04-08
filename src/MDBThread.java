@@ -45,6 +45,7 @@ public class MDBThread implements Runnable {
 
 		if (server.storedChunks.get(args[3] + "_" + args[4]) != null)
 		{
+			server.storedChunks.get(args[3] + "_" + args[4]).storedServers.set(1);
 			Random r = new Random();
 			Thread.sleep(r.nextInt(401));
 	

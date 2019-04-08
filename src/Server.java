@@ -373,7 +373,7 @@ public class Server implements ServerRMI {
 		
 			while(true) {
 				try {
-					Thread.sleep(500);
+					Thread.sleep(1000);
 				} catch (Exception e) {
 					return "ERROR";
 				}
@@ -448,23 +448,23 @@ public class Server implements ServerRMI {
 		{
 			Chunk chunk = chunks.poll();
 			String fileId = chunk.getFileID();
-			int chunkNo = Integer.parseInt(chunk.getChunkNo());
+			int chunkNo = chunk.getChunkNo();
+
+			space_used.set(space_used.get() - chunk.size);			
+			storedChunks.remove(chunk.id);
 
 			byte[] header = header("REMOVED", fileId, chunkNo, null).getBytes();
 
 			try {
 				DatagramPacket removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
-				mc.send(removedPacket); 
-				Thread.sleep(50);
+				mc.send(removedPacket);
+				Thread.sleep(1000);
 			} catch(Exception e) {}
 
-			space_used.set(space_used.get() - chunk.size);			
-			storedChunks.remove(chunk.id);
-
 			try {
-				new File("peer" + id + "/backup/" + chunk.getFileID() + "/chk" + chunk.getChunkNo()).delete();
-				new File("peer" + id + "/backup/" + chunk.getFileID() + "/chk" + chunk.getChunkNo() + ".ser").delete();
+				new File("peer" + id + "/backup/" + fileId + "/chk" + chunkNo).delete();
+				new File("peer" + id + "/backup/" + fileId + "/chk" + chunkNo + ".ser").delete();
 			} catch (Exception e) {
 			}
 
