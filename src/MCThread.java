@@ -142,6 +142,65 @@ public class MCThread implements Runnable {
 				deleteFolder(new File("peer" + server.id + "/backup/" + args[3]));
 			} catch (Exception e) {
 			}
+		} else if (args[0].equals("REMOVED")) {
+			if(server.backedupFiles.get(args[3]) != null)
+			{
+				server.backedupFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])).remove(Integer.parseInt(args[2]));
+				server.backedupFiles.get(args[3]).save("peer" + server.id + "/backup/" + args[3] + ".ser");
+			}
+	
+			else if(server.storedChunks.get(args[3] + "_" + args[4]) != null)
+			{
+				Chunk chunk = server.storedChunks.get(args[3] + "_" + args[4]);				
+				int actualRepDeg = chunk.storedServers.decrementAndGet();
+				System.out.println(actualRepDeg);
+				chunk.save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
+			
+				if(actualRepDeg >= chunk.expectedReplicationDegree)
+					return;
+
+				try {
+					Random r = new Random();
+					Thread.sleep(r.nextInt(401));
+				} catch (Exception e) {
+					return;
+				}
+
+				if(chunk.storedServers.get() > actualRepDeg)
+					return;
+
+				try {
+					byte[] chunkBuffer = new byte[64000];
+					byte[] header = server.header("PUTCHUNK", args[3], Integer.parseInt(args[4]), chunk.expectedReplicationDegree).getBytes();
+					
+					int tries = 1;
+					File chunkFile = new File("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]);
+					InputStream chunkToBackup = new FileInputStream(chunkFile);
+					int count = chunkToBackup.read(chunkBuffer);
+
+					byte[] message = new byte[header.length + count];
+
+                	System.arraycopy(header, 0, message, 0, header.length);
+					System.arraycopy(chunkBuffer, 0, message, header.length, count);
+					
+					DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdb_host), server.mdb_port);
+
+					do {
+						System.out.println("[Peer " + server.id + "] Send chunk " + args[4] + " from " + args[3] + "(try n " + tries + ")");
+						server.mdb.send(chunkPacket);
+						
+						Thread.sleep(tries * 1000);
+	
+						if(chunk.storedServers.get() >= chunk.expectedReplicationDegree)
+							break;
+	
+						tries++;
+					}
+					while(tries <= 5);
+
+
+				} catch (Exception e) {return;}			
+			}
 		}
 	
     }

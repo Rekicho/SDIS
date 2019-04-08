@@ -37,19 +37,20 @@ public class MDBThread implements Runnable {
 
         String[] args = message[0].trim().split(" ");
 
-        if (Integer.parseInt(args[2]) == server.id)
+        if (Integer.parseInt(args[2]) == server.id || server.backedupFiles.get(args[3]) != null)
             return;
 
         byte[] response = server.header("STORED", args[3], Integer.parseInt(args[4]), null).getBytes();
         DatagramPacket responsePacket = new DatagramPacket(response, response.length, InetAddress.getByName(server.mc_host), server.mc_port);
 
-        Random r = new Random();
-        Thread.sleep(r.nextInt(401));
-
-        server.mc.send(responsePacket);
-
-        if (server.storedChunks.get(args[3] + "_" + args[4]) != null)
-            return;
+		if (server.storedChunks.get(args[3] + "_" + args[4]) != null)
+		{
+			Random r = new Random();
+			Thread.sleep(r.nextInt(401));
+	
+			server.mc.send(responsePacket);
+			return;
+		}
 
 		int i = 0;
 		for(; i < buffer.length && buffer[i] != 13; i++);
@@ -63,7 +64,13 @@ public class MDBThread implements Runnable {
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + "_" + args[4], body_length, Integer.parseInt(args[5])));
 
-        server.space_used += body_length;
+		server.space_used += body_length;
+		
+		Random r = new Random();
+		Thread.sleep(r.nextInt(401));
+
+		server.mc.send(responsePacket);
+		
         new File("peer" + server.id + "/backup/" + args[3]).mkdirs();
         FileOutputStream writer = new FileOutputStream("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]);
         try{writer.write(Arrays.copyOfRange(buffer,i,length));

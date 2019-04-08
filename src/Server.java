@@ -307,7 +307,7 @@ public class Server implements ServerRMI {
 
                     tries++;
                 }
-                while(tries != 5);
+                while(tries <= 5);
 
                 chunkNo++;
             } while (count == 64000);
@@ -438,7 +438,7 @@ public class Server implements ServerRMI {
 		if(space_requested < 0)
 			return "INVALID SPACE SIZE";
 
-		disk_space = space_requested;
+		disk_space = space_requested * 1000;
 
 		PriorityQueue<Chunk> chunks = new PriorityQueue<Chunk>(storedChunks.values());
 
