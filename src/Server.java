@@ -19,11 +19,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.io.FileOutputStream;
 import java.util.Enumeration;
 import java.util.Arrays;
+import java.util.Collection;
 
 public class Server implements ServerRMI {
-    private String version;
+    String version;
     int id;
-    private int disk_space;
+    int disk_space;
     int space_used = 0;
 
     MulticastSocket mc;
@@ -49,7 +50,7 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-        this.disk_space = 1000;
+        this.disk_space = 10000000;
         this.mc_host = mc_host;
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
@@ -308,6 +309,18 @@ public class Server implements ServerRMI {
 		return "DELETED";
 	}
 
+	public String reclaim(String request) {
+		disk_space = Integer.parseInt(request.trim());
+
+		Collection<Chunk> set = storedChunks.values();
+
+		while(space_used > disk_space){
+
+		}
+		
+		return "RECLAIMED";
+	}
+
 	public String state() {
 		String res = "Backed Up Files:\n";
 		
@@ -329,10 +342,10 @@ public class Server implements ServerRMI {
 		{
 			key = keys.nextElement();
 
-			res += "\tID: " + key + "_" + storedChunks.get(key) + "\n";
+			res += "\tID: " + storedChunks.get(key) + "\n";
 		}
 
-		res += "Stored Capacity: " + disk_space + "\nStorage Used: " + space_used + "\n";
+		res += "Stored Capacity: " + disk_space/1000 + "\nStorage Used: " + space_used/1000 + "\n";
 
 		return res;
 	}

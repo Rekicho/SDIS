@@ -109,8 +109,11 @@ public class MCThread implements Runnable {
 			while(keys.hasMoreElements())
 			{
 				key = keys.nextElement();
-				if(key.contains(args[3]))
-					server.storedChunks.remove(args[3]);
+				if(key.contains(args[3])){
+					server.space_used -= server.storedChunks.get(key).size;
+					server.storedChunks.remove(key);
+				}
+					
 			}
 
 			try {

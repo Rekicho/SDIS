@@ -41,7 +41,10 @@ public class MDBThread implements Runnable {
 	
 		int body_length = length - i - 4;
 
-        server.storedChunks.put(args[3] + "_" + args[4], new Chunk(Integer.parseInt(args[4]), body_length, Integer.parseInt(args[5])));
+		if(server.space_used + body_length > server.disk_space)
+			return;
+
+        server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + "_" + args[4], body_length, Integer.parseInt(args[5])));
 
         server.space_used += body_length;
         new File("peer" + server.id + "/backup/" + args[3]).mkdirs();

@@ -5,13 +5,13 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Chunk implements Serializable {
-    int id;
+public class Chunk implements Serializable, Comparable<Chunk> {
+    String id;
     int size;
     int expectedReplicationDegree;
     AtomicInteger storedServers;
 
-    Chunk(int id, int size, int expectedReplicationDegree) {
+    Chunk(String id, int size, int expectedReplicationDegree) {
         this.id = id;
         this.size = size;
         this.expectedReplicationDegree = expectedReplicationDegree;

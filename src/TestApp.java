@@ -48,7 +48,18 @@ public class TestApp {
                     System.out.println("DELETE " + args[2] + " : " + response);
 					break;
 
-					case "STATE":
+				case "RECLAIM":
+					if(args.length != 3)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> RECLAIM <disk_space>");
+						System.exit(1);
+					}
+
+                    response = stub.reclaim(args[2]);
+                    System.out.println("DELETE " + args[2] + " : " + response);
+					break;
+
+				case "STATE":
 					if(args.length != 2)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> STATE");
