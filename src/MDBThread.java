@@ -59,12 +59,12 @@ public class MDBThread implements Runnable {
 	
 		int body_length = length - i - 4;
 
-		if(server.space_used + body_length > server.disk_space)
+		if(server.space_used.get() + body_length > server.disk_space)
 			return;
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + "_" + args[4], body_length, Integer.parseInt(args[5])));
 
-		server.space_used += body_length;
+		server.space_used.set(server.space_used.get() + body_length);
 		
 		Random r = new Random();
 		Thread.sleep(r.nextInt(401));

@@ -132,7 +132,7 @@ public class MCThread implements Runnable {
 			{
 				key = keys.nextElement();
 				if(key.contains(args[3])){
-					server.space_used -= server.storedChunks.get(key).size;
+					server.space_used.set(server.space_used.get() - server.storedChunks.get(key).size);
 					server.storedChunks.remove(key);
 				}
 					

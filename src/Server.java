@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.util.Enumeration;
 import java.util.Arrays;
 import java.util.PriorityQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Class that represents a Peer
@@ -44,7 +45,7 @@ public class Server implements ServerRMI {
     /**
      * Space ocuppied
      */
-    int space_used = 0;
+    AtomicInteger space_used;
 
     /**
      * Information of Control Channel
@@ -115,7 +116,8 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-        this.disk_space = 10000000;
+		this.disk_space = 10000000;
+		this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
@@ -157,8 +159,8 @@ public class Server implements ServerRMI {
             String name = file.getName();
 			if(name.substring(name.length()-4).equals(".ser")) {
 				Chunk chunk = Chunk.loadChunkFile(path + "/" + fileName + "/" + name);
-				space_used += chunk.size;
-                storedChunks.put(fileName + "_" + name.substring(0,name.length()-4), chunk);
+				space_used.set(space_used.get() + chunk.size);
+				storedChunks.put(fileName + "_" + name.substring(3,name.length()-4), chunk);
             }
         }
     }
@@ -445,7 +447,7 @@ public class Server implements ServerRMI {
 		byte[] header;
 		DatagramPacket removedPacket;
 
-		while(space_used > disk_space)
+		while(space_used.get() > disk_space && !chunks.isEmpty())
 		{
 			Chunk chunk = chunks.poll();
 			header = header("REMOVED", chunk.getFileID(), Integer.parseInt(chunk.getChunkNo()), null).getBytes();
@@ -457,7 +459,7 @@ public class Server implements ServerRMI {
 				mc.send(removedPacket); 
 			} catch(Exception e) {}
 
-			space_used -= chunk.size;
+			space_used.set(space_used.get() - chunk.size);			
 			storedChunks.remove(chunk.id);
 
 			try {
@@ -499,7 +501,7 @@ public class Server implements ServerRMI {
 			res += "\tID: " + storedChunks.get(key) + "\n";
 		}
 
-		res += "Stored Capacity: " + disk_space/1000 + "\nStorage Used: " + space_used/1000 + "\n";
+		res += "Stored Capacity: " + disk_space/1000 + "\nStorage Used: " + space_used.get()/1000 + "\n";
 
 		return res;
 	}
