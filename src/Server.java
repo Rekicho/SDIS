@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Enumeration;
 import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,7 +41,7 @@ public class Server implements ServerRMI {
      * Maximum disk space available for use
      */
     int disk_space;
-    
+
     /**
      * Space ocuppied
      */
@@ -70,17 +71,17 @@ public class Server implements ServerRMI {
     /**
      * Information for the BackedupFiles by this Peer
      */
-    ConcurrentHashMap<String,BackupFile> backedupFiles;
-    
+    ConcurrentHashMap<String, BackupFile> backedupFiles;
+
     /**
      * Information for the stored chunks by this Peer
      */
-    ConcurrentHashMap<String,Chunk> storedChunks;
+    ConcurrentHashMap<String, Chunk> storedChunks;
 
     /**
      * Information about the restored chunks by this Peer
      */
-	ConcurrentHashMap<String,byte[]> restoredChunk;
+    ConcurrentHashMap<String, byte[]> restoredChunk;
 
     /**
      * Thread Pool for all the threads of this Peer
@@ -94,37 +95,31 @@ public class Server implements ServerRMI {
 
     /**
      * Constructor for an object of Peer
-     * @param version
-     *              Version of the Peer
-     * @param id
-     *              Identifier of the Peer
-     * @param mc_host
-     *              Address of the Control Channel
-     * @param mc_port
-     *              Port of the Control Channel
-     * @param mdb_host
-     *              Address of the Data Backup Channel
-     * @param mdb_port
-     *              Port of the Data Backup Channel
-     * @param mdr_host
-     *              Address of the Data Recovery Channel
-     * @param mdr_port
-     *              Port of the Data Recovery Channel
+     * 
+     * @param version  Version of the Peer
+     * @param id       Identifier of the Peer
+     * @param mc_host  Address of the Control Channel
+     * @param mc_port  Port of the Control Channel
+     * @param mdb_host Address of the Data Backup Channel
+     * @param mdb_port Port of the Data Backup Channel
+     * @param mdr_host Address of the Data Recovery Channel
+     * @param mdr_port Port of the Data Recovery Channel
      * @throws Exception
      */
-    private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
+    private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host,
+            int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-		this.disk_space = 500000;
-		this.space_used = new AtomicInteger(0);
+        this.disk_space = 500000;
+        this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
         this.mdb_port = mdb_port;
         this.mdr_host = mdr_host;
-        this.mdr_port = mdr_port;    
+        this.mdr_port = mdr_port;
 
-		mc = new MulticastSocket(mc_port);
+        mc = new MulticastSocket(mc_port);
         mc.joinGroup(InetAddress.getByName(mc_host));
 
         mdb = new MulticastSocket(mdb_port);
@@ -134,8 +129,8 @@ public class Server implements ServerRMI {
         mdr.joinGroup(InetAddress.getByName(mdr_host));
 
         backedupFiles = new ConcurrentHashMap<>();
-		storedChunks = new ConcurrentHashMap<>();
-		restoredChunk = new ConcurrentHashMap<>();
+        storedChunks = new ConcurrentHashMap<>();
+        restoredChunk = new ConcurrentHashMap<>();
 
         loadInfo();
 
@@ -147,19 +142,18 @@ public class Server implements ServerRMI {
 
     /**
      * Load information of the chunks saved in the Peer from a file
-     * @param path
-     *          Path of the file with the information
-     * @param fileName
-     *          Name of the file with the information
+     * 
+     * @param path     Path of the file with the information
+     * @param fileName Name of the file with the information
      */
     private void loadFileChunkInfo(String path, String fileName) {
         File folder = new File(path + "/" + fileName);
-        for(File file : folder.listFiles()) {
+        for (File file : folder.listFiles()) {
             String name = file.getName();
-			if(name.substring(name.length()-4).equals(".ser")) {
-				Chunk chunk = Chunk.loadChunkFile(path + "/" + fileName + "/" + name);
-				space_used.set(space_used.get() + chunk.size);
-				storedChunks.put(fileName + "_" + name.substring(3,name.length()-4), chunk);
+            if (name.substring(name.length() - 4).equals(".ser")) {
+                Chunk chunk = Chunk.loadChunkFile(path + "/" + fileName + "/" + name);
+                space_used.set(space_used.get() + chunk.size);
+                storedChunks.put(fileName + "_" + name.substring(3, name.length() - 4), chunk);
             }
         }
     }
@@ -170,74 +164,69 @@ public class Server implements ServerRMI {
     private void loadInfo() {
         String backup_path = "peer" + id + "/backup";
         Path path = Paths.get("peer" + id);
-        if(Files.exists(path)){
+        if (Files.exists(path)) {
             File folder = new File(backup_path);
-            for (File fileEntry : folder.listFiles()){
-                if(fileEntry.isDirectory()){
+            for (File fileEntry : folder.listFiles()) {
+                if (fileEntry.isDirectory()) {
                     loadFileChunkInfo(backup_path, fileEntry.getName());
+                } else if (fileEntry.getName().substring(fileEntry.getName().length() - 4).equals(".ser")) {
+                    backedupFiles.put(fileEntry.getName().substring(0, fileEntry.getName().length() - 4),
+                            BackupFile.loadBackupFile(backup_path + "/" + fileEntry.getName()));
                 }
-                else if(fileEntry.getName().substring(fileEntry.getName().length()-4).equals(".ser")) { 
-					backedupFiles.put(fileEntry.getName().substring(0,fileEntry.getName().length()-4), BackupFile.loadBackupFile(backup_path + "/" + fileEntry.getName()));
-                }
-            }    
-        }
-        else{
+            }
+        } else {
             new File("peer" + id).mkdirs();
             new File("peer" + id + "/backup").mkdirs();
             new File("peer" + id + "/restored").mkdirs();
         }
- 
+
     }
 
     /**
      * Creates a String of a header formatted following the protocol rules
-     * @param message_type
-     *          Type of the message
-     * @param fileId
-     *          Identified of the file
-     * @param chunkNo
-     *          Number of the chunk
-     * @param replicationDeg
-     *          Replication degree
-     * @return
-     *          Header String
+     * 
+     * @param message_type   Type of the message
+     * @param fileId         Identified of the file
+     * @param chunkNo        Number of the chunk
+     * @param replicationDeg Replication degree
+     * @return Header String
      */
     String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg) {
-        return message_type + " " + version + " " + id + " " + fileId + " " + (chunkNo != null ? chunkNo.longValue() : "") + " " + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
-	}
-    
+        return message_type + " " + version + " " + id + " " + fileId + " "
+                + (chunkNo != null ? chunkNo.longValue() : "") + " "
+                + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
+    }
+
     /**
      * Converter of a byte array into a char array
-     * @param info
-     *          Information to be converted
-     * @return
-     *          Char array
+     * 
+     * @param info Information to be converted
+     * @return Char array
      */
-	private char[] hexString(byte[] info){
-		char[] hexChars = new char[info.length * 2];
-		for (int j = 0; j < info.length; j++) {
-			int v = info[j] & 0xFF;
-			hexChars[j * 2] = hexArray[v >>> 4];
-			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-		}
-		return hexChars;
-	}
+    private char[] hexString(byte[] info) {
+        char[] hexChars = new char[info.length * 2];
+        for (int j = 0; j < info.length; j++) {
+            int v = info[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return hexChars;
+    }
 
     /**
      * Identifier generator
-     * @param file
-     *          File for the identifier to be created
-     * @return
-     *          String with the name of the file
+     * 
+     * @param file File for the identifier to be created
+     * @return String with the name of the file
      */
     private String generateId(File file) {
         try {
             Path path = Paths.get(file.getAbsolutePath());
             BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
 
-
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] info = digest.digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
+            byte[] info = digest
+                    .digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
 
             return new String(hexString(info));
         } catch (Exception e) {
@@ -247,13 +236,12 @@ public class Server implements ServerRMI {
 
     /**
      * Backup a file
-     * @param request
-     *          Request for the backup of a file
-     * @return
-     *          String with the information about the success or not of the function
+     * 
+     * @param request Request for the backup of a file
+     * @return String with the information about the success or not of the function
      */
     public String backup(String request) {
-		request = request.trim();
+        request = request.trim();
         System.out.println("[Peer " + this.id + "] BACKUP " + request);
         String[] args = request.split(" ", 2);
 
@@ -268,10 +256,10 @@ public class Server implements ServerRMI {
             return "FILE_NOT_FOUND";
         }
 
-		String fileId = generateId(file);
+        String fileId = generateId(file);
 
-		BackupFile backupFile = new BackupFile(file.getName(),fileId,Integer.parseInt(args[1]));
-        backedupFiles.put(fileId,backupFile);
+        BackupFile backupFile = new BackupFile(file.getName(), fileId, Integer.parseInt(args[1]));
+        backedupFiles.put(fileId, backupFile);
         backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
         System.out.println("[Peer " + id + "] Sending file " + fileId);
@@ -292,47 +280,47 @@ public class Server implements ServerRMI {
                 System.arraycopy(header, 0, message, 0, header.length);
                 System.arraycopy(buffer, 0, message, header.length, count);
 
-                DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(mdb_host), mdb_port);
+                DatagramPacket chunkPacket = new DatagramPacket(message, message.length,
+                        InetAddress.getByName(mdb_host), mdb_port);
 
-                backupFile.chunks.put(chunkNo,new ConcurrentSkipListSet<>());
+                backupFile.chunks.put(chunkNo, new ConcurrentSkipListSet<>());
                 backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
-                
-                do {
-                    System.out.println("[Peer " + id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
-                    mdb.send(chunkPacket);
-                    
-					Thread.sleep(tries * 1000);
 
-                    if(backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
+                do {
+                    System.out.println(
+                            "[Peer " + id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
+                    mdb.send(chunkPacket);
+
+                    Thread.sleep(tries * 1000);
+
+                    if (backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
                         break;
 
                     tries++;
-                }
-                while(tries <= 5);
+                } while (tries <= 5);
 
                 chunkNo++;
             } while (count == 64000);
 
             fileToBackup.close();
-        } catch (Exception e) {            
+        } catch (Exception e) {
             return "FILE I/O ERROR";
         }
 
         return "STORED";
-	}
+    }
 
     /**
      * Restore a file
-     * @param request
-     *          Request for the restoration of a file
-     * @return
-     *          String with the information about the success or not of the function
+     * 
+     * @param request Request for the restoration of a file
+     * @return String with the information about the success or not of the function
      */
-	public String restore(String request){
-		request = request.trim();
-		System.out.println("[Peer " + this.id + "] Restore " + request);
+    public String restore(String request) {
+        request = request.trim();
+        System.out.println("[Peer " + this.id + "] Restore " + request);
 
-		File file;
+        File file;
 
         try {
             file = new File(request);
@@ -341,58 +329,62 @@ public class Server implements ServerRMI {
             return "FILE_NOT_FOUND";
         }
 
-		String fileId = generateId(file);
-		BackupFile backupFile;
+        String fileId = generateId(file);
+        BackupFile backupFile;
 
-		if((backupFile = backedupFiles.get(fileId)) == null)
-			return "FILE_NOT_BACKED_UP";
+        if ((backupFile = backedupFiles.get(fileId)) == null)
+            return "FILE_NOT_BACKED_UP";
 
-		FileOutputStream writer;
+        FileOutputStream writer;
 
-		try {
-			writer = new FileOutputStream("peer" + id + "/restored/" + request);
-		} catch (Exception e) {
-			return "COULD_NOT_WRITE_FILE";
-		}
+        try {
+            writer = new FileOutputStream("peer" + id + "/restored/" + request);
+        } catch (Exception e) {
+            return "COULD_NOT_WRITE_FILE";
+        }
 
-		byte[] header;
-		DatagramPacket restorePacket;
+        byte[] header;
+        DatagramPacket restorePacket;
 
-		for(int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++)
-		{
-			header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
-			try {
-				restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
-	
-				System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
-				mc.send(restorePacket);
-			} catch(Exception e) {
-				return "ERROR";
-			}
+        for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
+            header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
+            try {
+                restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 
-			byte[] chunk;
-		
-			while(true) {
-				try {
-					Thread.sleep(1000);
-				} catch (Exception e) {
-					return "ERROR";
-				}
-				
-				if ((chunk = restoredChunk.get(fileId + "_" + chunkNo)) == null)
-					continue;
+                System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
+                mc.send(restorePacket);
+            } catch (Exception e) {
+                return "ERROR";
+            }
 
-				restoredChunk.remove(fileId + "_" + chunkNo);
+            byte[] chunk;
 
-				try{
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                    return "ERROR";
+                }
+
+                if ((chunk = restoredChunk.get(fileId + "_" + chunkNo)) == null)
+                    continue;
+
+                restoredChunk.remove(fileId + "_" + chunkNo);
+
+                try {
                     writer.write(chunk);
-                    writer.close();
-                }catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-				break;
-			}			
-		}
+                break;
+            }
+        }
+
+        try {
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
 		return "RESTORED";
 	}
@@ -445,7 +437,7 @@ public class Server implements ServerRMI {
 		if(space_requested < 0)
 			return "INVALID SPACE SIZE";
 
-		disk_space = space_requested * 1000;
+		disk_space = space_requested * Const.KBYTES_TO_BYTES;
 
 		PriorityQueue<Chunk> chunks = new PriorityQueue<Chunk>(storedChunks.values());
 
@@ -464,7 +456,7 @@ public class Server implements ServerRMI {
 				DatagramPacket removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
 				mc.send(removedPacket);
-				Thread.sleep(1000);
+				Thread.sleep(Const.MEDIUM_DELAY);
 			} catch(Exception e) {}
 
 			try {
