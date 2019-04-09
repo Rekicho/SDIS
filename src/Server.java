@@ -30,7 +30,7 @@ public class Server implements ServerRMI {
     /**
      * Version of the Peer
      */
-    private String version;
+    String version;
 
     /**
      * Identifier of the Peer
@@ -116,7 +116,7 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-		this.disk_space = 10000000;
+		this.disk_space = 70000;
 		this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;

@@ -43,10 +43,11 @@ public class MDBThread implements Runnable {
         byte[] response = server.header("STORED", args[3], Integer.parseInt(args[4]), null).getBytes();
         DatagramPacket responsePacket = new DatagramPacket(response, response.length, InetAddress.getByName(server.mc_host), server.mc_port);
 
+		Random r = new Random();
+		
 		if (server.storedChunks.get(args[3] + "_" + args[4]) != null)
 		{
 			server.storedChunks.get(args[3] + "_" + args[4]).storedServers.set(1);
-			Random r = new Random();
 			Thread.sleep(r.nextInt(401));
 	
 			server.mc.send(responsePacket);
@@ -59,15 +60,30 @@ public class MDBThread implements Runnable {
 		i += 4;
 	
 		int body_length = length - i - 4;
+		int free_space = server.disk_space - server.space_used.get(); 
 
-		if(server.space_used.get() + body_length > server.disk_space)
+		if(body_length > free_space)
+		{
+			System.out.println("[Peer " + server.id + " MDB] No memory to store chunk " + args[3] + "_" + args[4] + ".");
 			return;
+		}
+
+		if (!server.version.equals("1.0"))
+		{
+			float storeProbablity = (float) (free_space - body_length) / server.disk_space;
+			System.out.println("[Peer " + server.id + " MDB] Probability store chunk " + args[3] + "_" + args[4] + ": " + (storeProbablity * 100) + "%.");
+			
+			if(r.nextFloat() > storeProbablity)
+			{
+				System.out.println("[Peer " + server.id + " MDB] Decided not to store chunk " + args[3] + "_" + args[4] + ".");
+				return;
+			}
+		}
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + "_" + args[4], body_length, Integer.parseInt(args[5])));
 
 		server.space_used.set(server.space_used.get() + body_length);
 		
-		Random r = new Random();
 		Thread.sleep(r.nextInt(401));
 
 		server.mc.send(responsePacket);
