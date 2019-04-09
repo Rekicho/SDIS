@@ -135,7 +135,7 @@ public class Server implements ServerRMI {
 
         loadInfo();
 
-        executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(10);
+        executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(50);
         executor.execute(new MCThread(this));
         executor.execute(new MDBThread(this));
         executor.execute(new MDRThread(this));
@@ -269,36 +269,23 @@ public class Server implements ServerRMI {
         int chunkNo = 0;
         byte[] buffer = new byte[64000];
         byte[] header;
+		ConcurrentHashMap<Integer, DatagramPacket> packets = new ConcurrentHashMap<>();
 
-        try {
+		try {
             do {
                 count = fileToBackup.read(buffer);
-                int tries = 1;
+
                 header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
                 byte[] message = new byte[header.length + count];
-
                 System.arraycopy(header, 0, message, 0, header.length);
                 System.arraycopy(buffer, 0, message, header.length, count);
 
-                DatagramPacket chunkPacket = new DatagramPacket(message, message.length,
-                        InetAddress.getByName(mdb_host), mdb_port);
+                packets.put(chunkNo,new DatagramPacket(message, message.length,
+                        InetAddress.getByName(mdb_host), mdb_port));
 
                 backupFile.chunks.put(chunkNo, new ConcurrentSkipListSet<>());
                 backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
-
-                do {
-                    System.out.println(
-                            "[Peer " + id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
-                    mdb.send(chunkPacket);
-
-                    Thread.sleep(tries * 1000);
-
-                    if (backupFile.chunks.get(chunkNo).size() >= backupFile.replicationDegree)
-                        break;
-
-                    tries++;
-                } while (tries <= 5);
 
                 chunkNo++;
             } while (count == 64000);
@@ -308,7 +295,12 @@ public class Server implements ServerRMI {
             return "FILE I/O ERROR";
         }
 
-        return "STORED";
+		AtomicInteger actualChunk = new AtomicInteger(0);
+
+		for(int i = 0; i < 5; i++)
+			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
+
+		return "BACKED_UP";
     }
 
     /**
