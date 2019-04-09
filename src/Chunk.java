@@ -123,6 +123,6 @@ public class Chunk implements Serializable, Comparable<Chunk> {
 	public int getChunkNo() {
 		String[] info = id.split("_",2);
 
-		return (int) Integer.parseInt(info[1]);
+		return Integer.parseInt(info[1]);
 	}
 }

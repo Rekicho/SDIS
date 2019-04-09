@@ -116,7 +116,7 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-		this.disk_space = 70000;
+		this.disk_space = 1000000000;
 		this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;
@@ -456,10 +456,9 @@ public class Server implements ServerRMI {
 			byte[] header = header("REMOVED", fileId, chunkNo, null).getBytes();
 
 			try {
-				DatagramPacket removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+				DatagramPacket removedPacket = new DatagramPacket(Arrays.copyOf(header, header.length), header.length, InetAddress.getByName(mc_host), mc_port);
 				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
 				mc.send(removedPacket);
-				Thread.sleep(1000);
 			} catch(Exception e) {}
 
 			try {
