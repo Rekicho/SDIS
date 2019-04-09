@@ -81,6 +81,7 @@ public class MDBThread implements Runnable {
 		}
 
         server.storedChunks.put(args[3] + "_" + args[4], new Chunk(args[3] + "_" + args[4], body_length, Integer.parseInt(args[5])));
+		server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
 
 		server.space_used.set(server.space_used.get() + body_length);
 		
@@ -92,8 +93,6 @@ public class MDBThread implements Runnable {
         FileOutputStream writer = new FileOutputStream("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]);
         try{writer.write(Arrays.copyOfRange(buffer,i,length));
         writer.close();}catch(Exception e){}
-
-        server.storedChunks.get(args[3] + "_" + args[4]).save("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4] + ".ser");
     }
 
     /**
