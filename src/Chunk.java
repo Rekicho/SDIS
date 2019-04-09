@@ -11,6 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Chunk implements Serializable, Comparable<Chunk> {
     
     /**
+     * Serial Version ID
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * Identifier of the Chunk
      */
     String id;
@@ -57,11 +62,9 @@ public class Chunk implements Serializable, Comparable<Chunk> {
         try {
             FileInputStream file = new FileInputStream(path);
             ObjectInputStream in = new ObjectInputStream(file);
-
 			Chunk chunk = (Chunk) in.readObject();
             in.close();
             file.close();
-
             return chunk;
         } catch (Exception e) {
             return null;

@@ -13,6 +13,11 @@ import java.util.Enumeration;
 public class BackupFile implements Serializable {
 
     /**
+     * Serial Version ID
+     */
+    private static final long serialVersionUID = 1L;
+
+    /**
      * Name of the file
      */
     String name;
@@ -82,6 +87,7 @@ public class BackupFile implements Serializable {
             object.close();
             file.close();
         } catch (Exception e) {
+            e.printStackTrace();
         }
 	}
     
@@ -89,12 +95,11 @@ public class BackupFile implements Serializable {
      * Create a string with all the information of the object BackupFile
      */
 	public String toString() {
-		String res = "";
+        String res = "";
+        Enumeration<Integer> keys = chunks.keys();
+		Integer key;
 
 		res += "\tName: " + name + "\n\tFileID: " + fileID + "\n\tReplication Degree: " + replicationDegree + "\n\tChunks:\n";
-
-		Enumeration<Integer> keys = chunks.keys();
-		Integer key;
 
 		while(keys.hasMoreElements())
 		{

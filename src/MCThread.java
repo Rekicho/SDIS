@@ -198,8 +198,10 @@ public class MCThread implements Runnable {
 					}
 					while(tries <= 5);
 
-
-				} catch (Exception e) {return;}			
+					chunkToBackup.close();
+				} catch (Exception e) {
+					return;
+				}			
 			}
 		}
 	
