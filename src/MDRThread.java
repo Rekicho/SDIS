@@ -57,12 +57,14 @@ public class MDRThread implements Runnable {
             } catch (Exception e) {
                 System.err.println("MDR channel error");
                 System.exit(0);
-            }
+			}
+			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
+			int length = receivePacket.getLength();
             server.executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        interpretMessage(buffer, receivePacket.getLength());
+                        interpretMessage(newBuffer, length);
                     } catch (Exception e) {
                         System.err.println("MDR channel error");
                         System.exit(0);

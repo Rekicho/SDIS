@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.PriorityQueue;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -110,8 +111,8 @@ public class Server implements ServerRMI {
             int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-        this.disk_space = 500000;
-        this.space_used = new AtomicInteger(0);
+		this.disk_space = 1000000000;
+		this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;
         this.mdb_host = mdb_host;
@@ -453,10 +454,10 @@ public class Server implements ServerRMI {
 			byte[] header = header("REMOVED", fileId, chunkNo, null).getBytes();
 
 			try {
-				DatagramPacket removedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+				DatagramPacket removedPacket = new DatagramPacket(Arrays.copyOf(header, header.length), header.length, InetAddress.getByName(mc_host), mc_port);
 				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
 				mc.send(removedPacket);
-				Thread.sleep(Const.MEDIUM_DELAY);
+				//Thread.sleep(Const.MEDIUM_DELAY);
 			} catch(Exception e) {}
 
 			try {

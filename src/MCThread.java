@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.util.Random;
+import java.util.Arrays;
 
 /**
  * Thread for the Multicast Control Channel
@@ -240,12 +241,13 @@ public class MCThread implements Runnable {
             } catch (Exception e) {
                 System.err.println("MC channel error");
                 System.exit(0);
-            }
+			}
+			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
             server.executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        interpretMessage(buffer);
+                        interpretMessage(newBuffer);
                     } catch (Exception e) {
                         System.err.println("MC channel error");
                         System.exit(0);
