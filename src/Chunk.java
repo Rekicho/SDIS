@@ -81,6 +81,7 @@ public class Chunk implements Serializable, Comparable<Chunk> {
             object.close();
             file.close();
         } catch (Exception e) {
+            e.printStackTrace();
         }
 	}
     
@@ -88,13 +89,12 @@ public class Chunk implements Serializable, Comparable<Chunk> {
      * Create a string with all the information of the object Chunk
      */
 	public String toString() {
-		String res = "";
-
-		res += id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedServers + "\n";
-
-		return res;
+		return id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedServers + "\n";
 	}
 
+    /**
+     * Overload of the compare function based on the amount of redundant information of the chunk
+     */
 	public int compareTo(Chunk other) {
 		int res = (other.size * (other.storedServers.get() - other.expectedReplicationDegree)) - (size * (storedServers.get() - expectedReplicationDegree));
 
@@ -104,12 +104,22 @@ public class Chunk implements Serializable, Comparable<Chunk> {
 		return res;
 	}
 
+    /**
+     * Create the File Id from the id
+     * @return
+     *          Hash of the file id
+     */
 	public String getFileID() {
 		String[] info = id.split("_",2);
 
 		return info[0];
 	}
 
+    /**
+     * Get the Chunk number from the id
+     * @return
+     *          Integer of the chunk
+     */
 	public int getChunkNo() {
 		String[] info = id.split("_",2);
 
