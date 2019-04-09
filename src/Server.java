@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.io.FileOutputStream;
 import java.util.Enumeration;
-import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -116,7 +115,7 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host, int mdr_port) throws Exception {
         this.version = version;
         this.id = id;
-		this.disk_space = 70000;
+		this.disk_space = 500000;
 		this.space_used = new AtomicInteger(0);
         this.mc_host = mc_host;
         this.mc_port = mc_port;
@@ -313,7 +312,9 @@ public class Server implements ServerRMI {
 
                 chunkNo++;
             } while (count == 64000);
-        } catch (Exception e) {
+
+            fileToBackup.close();
+        } catch (Exception e) {            
             return "FILE I/O ERROR";
         }
 
@@ -378,13 +379,17 @@ public class Server implements ServerRMI {
 					return "ERROR";
 				}
 				
-				
 				if ((chunk = restoredChunk.get(fileId + "_" + chunkNo)) == null)
 					continue;
 
 				restoredChunk.remove(fileId + "_" + chunkNo);
 
-				try{writer.write(chunk);}catch(Exception e){}
+				try{
+                    writer.write(chunk);
+                    writer.close();
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
 				break;
 			}			
 		}

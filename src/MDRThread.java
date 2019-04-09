@@ -1,4 +1,3 @@
-import java.net.MulticastSocket;
 import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -41,8 +40,6 @@ public class MDRThread implements Runnable {
 		for(; i < buffer.length && buffer[i] != 13; i++);
 	
 		i += 4;
-	
-		int body_length = length - i - 4;
 
 		server.restoredChunk.put(args[3] + "_" + args[4], Arrays.copyOfRange(buffer,i,length));
 	}
