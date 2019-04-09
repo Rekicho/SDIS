@@ -2,8 +2,6 @@
  * Collected constants of general utility
 */
 public final class Const {
-    public static final String ERROR = "lel";
-
     public static final String MSG_STORED = "STORED";
     public static final String MSG_GETCHUNK = "GETCHUNK";
     public static final String MSG_DELETE = "DELETE";
