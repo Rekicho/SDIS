@@ -32,7 +32,7 @@ public class MDBThread implements Runnable {
 	 * 			Buffer with the message content to be interpreted
 	 */
     private void interpretMessage(byte[] buffer, int length) throws Exception {
-        String[] message = new String(buffer, StandardCharsets.US_ASCII).split("\r\n\r\n",2);
+        String[] message = new String(buffer, StandardCharsets.US_ASCII).split(Const.CRLF,2);
 
         System.out.println("[Peer " + server.id + " MDB] " + message[0]);
 
