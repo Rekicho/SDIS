@@ -30,13 +30,13 @@ public class BackupThread implements Runnable {
                             "[Peer " + server.id + "] Send chunk " + chunkNumber + " from " + backupFile.fileID + "(try n " + tries + ")");
                     server.mdb.send(packets.get(chunkNumber));
 
-                    Thread.sleep(tries * 1000);
+                    Thread.sleep(tries * Const.SECONDS_TO_MILI);
 
                     if (backupFile.chunks.get(chunkNumber).size() >= backupFile.replicationDegree)
                         break;
 
                     tries++;
-                } while (tries <= 5);
+                } while (tries <= Const.MAX_AMOUNT_OF_TRIES);
             }
         } catch (Exception e) {
         }

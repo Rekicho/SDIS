@@ -1,10 +1,12 @@
 import java.net.DatagramPacket;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.util.Random;
 import java.util.Arrays;
 
@@ -16,27 +18,27 @@ public class MCThread implements Runnable {
 	/**
 	 * Peer associated with the Thread
 	 */
-    private Server server;
+	private Server server;
 
 	/**
 	 * Constructor for the Multicast Control Channel Thread
-	 * @param server
-	 * 			Peer associated with the Thread
+	 * 
+	 * @param server Peer associated with the Thread
 	 */
-    MCThread(Server server){
-        this.server = server;
+	MCThread(Server server) {
+		this.server = server;
 	}
-	
+
 	/**
 	 * Deletes a folder
-	 * @param folder
-	 * 			Folder to be deleted
+	 * 
+	 * @param folder Folder to be deleted
 	 */
 	public static void deleteFolder(File folder) {
 		File[] files = folder.listFiles();
-		if(files!=null) {
-			for(File f: files) {
-				if(f.isDirectory()) {
+		if (files != null) {
+			for (File f : files) {
+				if (f.isDirectory()) {
 					deleteFolder(f);
 				} else {
 					f.delete();
@@ -51,15 +53,13 @@ public class MCThread implements Runnable {
 		BackupFile backedUpFile = server.backedupFiles.get(fileId);
 		Chunk chunk = server.storedChunks.get(chunkFileName);
 
-		if(backedUpFile != null) {
+		if (backedUpFile != null) {
 			backedUpFile.chunks.get(chunkNo).add(serverId);
 			backedUpFile.save("peer" + server.id + "/backup/" + fileId + ".ser");
-		}
-		else if(chunk != null) {
+		} else if (chunk != null) {
 			chunk.storedServers.incrementAndGet();
 			chunk.save("peer" + server.id + "/backup/" + fileId + "/chk" + chunkNo + ".ser");
-		}
-		else {
+		} else {
 			// TODO
 		}
 	}
@@ -73,14 +73,52 @@ public class MCThread implements Runnable {
 		}
 	}
 
-	private void receivedGetChunkMsg(String fileId, int chunkNo) {
+	private void sendChunk(String version, byte[] message, String fileId, int chunkNo) {
+		DatagramPacket chunkPacket;
+		String chunkFileName = fileId + "_" + chunkNo;
+
+		if (version.equals(Const.VERSION_1_0)) {
+			try {
+				chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdr_host),
+						server.mdr_port);
+			} catch (Exception e) {
+				return;
+			}
+
+			sleepRandom(Const.SMALL_DELAY);
+
+			if (server.restoredChunkMessages.contains(chunkFileName)) {
+				server.restoredChunkMessages.remove(chunkFileName);
+				return;
+			}
+
+			System.out.println("[Peer " + server.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
+
+			try {
+				server.mdr.send(chunkPacket);
+			} catch (Exception e) {
+			}
+		} else if (version.equals(Const.VERSION_1_1)) {
+			try {
+				Socket clientSocket = new Socket("localhost", 6789);
+				DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+				System.out.println("Wrote: " + message.length + " bytes");
+				
+				outToServer.write(message,0,message.length);
+				clientSocket.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void receivedGetChunkMsg(String version, String fileId, int chunkNo) {
 		String chunkFileName = fileId + "_" + chunkNo;
 		if(server.storedChunks.get(chunkFileName) == null)
 			return;
 
 		int filesize;
 		FileInputStream fileToRestore;
-		DatagramPacket chunkPacket;
 		byte[] header = (server.header("CHUNK", fileId, chunkNo, null)).getBytes();
 		byte[] new_buffer = new byte[Const.BUFFER_SIZE];
 
@@ -95,26 +133,8 @@ public class MCThread implements Runnable {
 		byte[] message = new byte[header.length + filesize];
 		System.arraycopy(header, 0, message, 0, header.length);
 		System.arraycopy(new_buffer, 0, message, header.length, filesize);
-		
-		try {
-			chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdr_host), server.mdr_port);
-		} catch (Exception e) {
-			return;
-		}
 
-		sleepRandom(Const.SMALL_DELAY);
-
-		if (server.restoredChunkMessages.contains(chunkFileName)) {
-			server.restoredChunkMessages.remove(chunkFileName);
-			return;
-		}
-		
-		System.out.println("[Peer " + server.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
-		
-		try {
-			server.mdr.send(chunkPacket);
-		} catch (Exception e) {
-		}
+		sendChunk(version,message,fileId,chunkNo);
 	}
 
 	private void receivedDeleteMsg(String fileId) {
@@ -181,7 +201,7 @@ public class MCThread implements Runnable {
 
 					tries++;
 				}
-				while(tries <= Const.MAX_AMOUT_OF_TRIES);
+				while(tries <= Const.MAX_AMOUNT_OF_TRIES);
 
 				chunkToBackup.close();
 			} catch (Exception e) {
@@ -200,7 +220,7 @@ public class MCThread implements Runnable {
 
         String[] args = new String(buffer, StandardCharsets.US_ASCII).trim().split(" ");
 		String messageType = args[0];
-		//String version = args[1];
+		String version = args[1];
 		int serverId = Integer.parseInt(args[2]);
 		String fileId = args[3];
 		int chunkNo;
@@ -215,7 +235,7 @@ public class MCThread implements Runnable {
 				break;
 			case Const.MSG_GETCHUNK:
 				chunkNo = Integer.parseInt(args[4]);
-				receivedGetChunkMsg(fileId, chunkNo);
+				receivedGetChunkMsg(version,fileId, chunkNo);
 				break;
 			case Const.MSG_DELETE:
 				receivedDeleteMsg(fileId);

@@ -4,6 +4,8 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.PriorityQueue;
@@ -91,6 +92,9 @@ public class Server implements ServerRMI {
      */
     ThreadPoolExecutor executor;
 
+    ServerSocket restoreSocket;
+    Socket connectionSocket;
+
     /**
      * Auxiliar char array for hexadecimal conversion
      */
@@ -112,6 +116,7 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host,
             int mdr_port) throws Exception {
         this.version = version;
+        System.out.println(version);
         this.id = id;
 		this.disk_space = 1000000000;
 		this.space_used = new AtomicInteger(0);
@@ -306,6 +311,59 @@ public class Server implements ServerRMI {
 		return "BACKED_UP";
     }
 
+    private String sendRestoreMsg(BackupFile backupFile, String fileId) {
+        byte[] header;
+        DatagramPacket restorePacket;
+        System.out.println("entrei aqui");
+
+        /* SETUP DO TCP */
+        if(version.equals(Const.VERSION_1_1)) {
+            System.out.println("aqui tambem");
+            try {
+                restoreSocket = new ServerSocket(6789);
+                System.out.println("aqui tambem sim");
+                
+                
+            } catch (Exception e) {
+                return "error";
+            }
+        }
+
+        /* ENVIAR OS PEDIDOS */
+        for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
+            header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
+            try {
+                restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+
+                System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
+                mc.send(restorePacket);
+            } catch (Exception e) {
+                return "ERROR";
+            }
+        }
+        
+        if(version.equals(Const.VERSION_1_0)){
+            
+        }else if(version.equals(Const.VERSION_1_1)){
+            int counter = 0;
+            int num = backupFile.chunks.size();
+            while(counter < num) {
+                System.out.println(counter);
+                try {
+                    connectionSocket = restoreSocket.accept();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                new ReadTCPAnswerThread(this,connectionSocket).start();
+                counter++;
+            }
+
+        }
+        return "RESTORED";
+    }
+
+
     /**
      * Restore a file
      * 
@@ -333,22 +391,7 @@ public class Server implements ServerRMI {
 
 		restoredFiles.put(fileId, new RestoredFile("peer" + id + "/restored/" + request,backupFile.chunks.size()));
 
-        byte[] header;
-        DatagramPacket restorePacket;
-
-        for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
-            header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
-            try {
-                restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
-
-                System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
-                mc.send(restorePacket);
-            } catch (Exception e) {
-                return "ERROR";
-            }
-        }
-
-		return "RESTORED";
+        return sendRestoreMsg(backupFile,fileId);
 	}
     
     /**

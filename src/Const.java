@@ -31,11 +31,17 @@ public final class Const {
     /**
      * Protocol constants
      */
-    public static final int MAX_AMOUT_OF_TRIES = 5;
+    public static final int MAX_AMOUNT_OF_TRIES = 5;
     public static final int MAX_BACKUP_THREADS = 5;
     
     /**
      * Utils strings
      */
     public static final String CRLF = "\r\n\r\n";
+
+    /**
+     * Available Versions
+     */
+    public static final String VERSION_1_0 = "1.0";
+    public static final String VERSION_1_1 = "1.1";
 }
