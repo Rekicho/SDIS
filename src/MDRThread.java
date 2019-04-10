@@ -53,6 +53,7 @@ public class MDRThread implements Runnable {
 			if(server.restoredFiles.get(args[3]).isComplete())
 			{
 				server.restoredFiles.get(args[3]).createFile();
+				System.out.println("[Peer " + server.id + "] File " + server.restoredFiles.get(args[3]).fileName() + " restored.");
 				server.restoredFiles.remove(args[3]);
 			}
 		}

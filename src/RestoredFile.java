@@ -29,4 +29,10 @@ class RestoredFile {
 		} catch (Exception e) {}
 	}
 
+	String fileName() {
+		String[] names = path.split("/");
+
+		return names[names.length - 1];
+	}
+
 }

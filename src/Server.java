@@ -418,7 +418,6 @@ public class Server implements ServerRMI {
 				DatagramPacket removedPacket = new DatagramPacket(Arrays.copyOf(header, header.length), header.length, InetAddress.getByName(mc_host), mc_port);
 				System.out.println("[Peer " + id + "] Removed file " + fileId + " chunk no." + chunkNo);
 				mc.send(removedPacket);
-				//Thread.sleep(Const.MEDIUM_DELAY);
 			} catch(Exception e) {}
 
 			try {
