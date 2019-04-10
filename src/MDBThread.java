@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Thread for the Multicast Data Backup Channel
@@ -70,7 +71,22 @@ public class MDBThread implements Runnable {
 
 		if (!server.version.equals("1.0"))
 		{
-			float storeProbablity = (float) (free_space - body_length) / server.disk_space;
+			int tries;
+			if(server.chunkTries.get(args[3] + "_" + args[4]) == null)
+			{
+				server.chunkTries.put(args[3] + "_" + args[4], new AtomicInteger(1));
+				tries = 1;
+			}
+
+			else tries = server.chunkTries.get(args[3] + "_" + args[4]).incrementAndGet();
+
+			float storeProbablity;
+			
+			if(tries == 5)
+				storeProbablity = 1;
+
+			else storeProbablity = (0.1f * tries) + (0.5f * (((float)free_space - body_length) / server.disk_space));
+			
 			System.out.println("[Peer " + server.id + " MDB] Probability store chunk " + args[3] + "_" + args[4] + ": " + (storeProbablity * 100) + "%.");
 			
 			if(r.nextFloat() > storeProbablity)
