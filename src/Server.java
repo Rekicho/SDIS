@@ -82,7 +82,9 @@ public class Server implements ServerRMI {
     /**
      * Information about the restored files by this Peer
      */
-    ConcurrentHashMap<String, RestoredFile> restoredFiles;
+	ConcurrentHashMap<String, RestoredFile> restoredFiles;
+	
+	ConcurrentHashMap<String, AtomicInteger> chunkTries;
 
 	ConcurrentSkipListSet<String> restoredChunkMessages;
 
@@ -135,6 +137,9 @@ public class Server implements ServerRMI {
         storedChunks = new ConcurrentHashMap<>();
         restoredFiles = new ConcurrentHashMap<>();
 		restoredChunkMessages = new ConcurrentSkipListSet<>();
+		
+		if(!version.equals("1.0"))
+			chunkTries = new ConcurrentHashMap<>();
 
         loadInfo();
 
