@@ -41,7 +41,21 @@ public class MDRThread implements Runnable {
 	
 		i += 4;
 
-		server.restoredChunk.put(args[3] + "_" + args[4], Arrays.copyOfRange(buffer,i,length));
+		if(server.restoredFiles.get(args[3]) == null)
+		{
+			server.restoredChunkMessages.add(args[3] + "_" + args[4]);
+			return;
+		}
+
+		if(server.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
+			server.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
+			
+			if(server.restoredFiles.get(args[3]).isComplete())
+			{
+				server.restoredFiles.get(args[3]).createFile();
+				server.restoredFiles.remove(args[3]);
+			}
+		}
 	}
 
     /**

@@ -16,4 +16,6 @@ public final class Const {
     public static final int KBYTES_TO_BYTES = 1000;
 
     public static final int MAX_AMOUT_OF_TRIES = 5;
+
+	public static final int MAX_BACKUP_THREADS = 5;
 }

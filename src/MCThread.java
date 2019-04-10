@@ -104,8 +104,8 @@ public class MCThread implements Runnable {
 
 		sleepRandom(Const.SMALL_DELAY);
 
-		if (server.restoredChunk.get(chunkFileName) != null) {
-			server.restoredChunk.remove(chunkFileName);
+		if (server.restoredChunkMessages.contains(chunkFileName)) {
+			server.restoredChunkMessages.remove(chunkFileName);
 			return;
 		}
 		

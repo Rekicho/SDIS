@@ -80,9 +80,11 @@ public class Server implements ServerRMI {
     ConcurrentHashMap<String, Chunk> storedChunks;
 
     /**
-     * Information about the restored chunks by this Peer
+     * Information about the restored files by this Peer
      */
-    ConcurrentHashMap<String, byte[]> restoredChunk;
+    ConcurrentHashMap<String, RestoredFile> restoredFiles;
+
+	ConcurrentSkipListSet<String> restoredChunkMessages;
 
     /**
      * Thread Pool for all the threads of this Peer
@@ -131,7 +133,8 @@ public class Server implements ServerRMI {
 
         backedupFiles = new ConcurrentHashMap<>();
         storedChunks = new ConcurrentHashMap<>();
-        restoredChunk = new ConcurrentHashMap<>();
+        restoredFiles = new ConcurrentHashMap<>();
+		restoredChunkMessages = new ConcurrentSkipListSet<>();
 
         loadInfo();
 
@@ -297,7 +300,7 @@ public class Server implements ServerRMI {
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
 
-		for(int i = 0; i < 5; i++)
+		for(int i = 0; i < Const.MAX_BACKUP_THREADS && i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
 
 		return "BACKED_UP";
@@ -328,13 +331,7 @@ public class Server implements ServerRMI {
         if ((backupFile = backedupFiles.get(fileId)) == null)
             return "FILE_NOT_BACKED_UP";
 
-        FileOutputStream writer;
-
-        try {
-            writer = new FileOutputStream("peer" + id + "/restored/" + request);
-        } catch (Exception e) {
-            return "COULD_NOT_WRITE_FILE";
-        }
+		restoredFiles.put(fileId, new RestoredFile("peer" + id + "/restored/" + request,backupFile.chunks.size()));
 
         byte[] header;
         DatagramPacket restorePacket;
@@ -349,34 +346,6 @@ public class Server implements ServerRMI {
             } catch (Exception e) {
                 return "ERROR";
             }
-
-            byte[] chunk;
-
-            while (true) {
-                try {
-                    Thread.sleep(1000);
-                } catch (Exception e) {
-                    return "ERROR";
-                }
-
-                if ((chunk = restoredChunk.get(fileId + "_" + chunkNo)) == null)
-                    continue;
-
-                restoredChunk.remove(fileId + "_" + chunkNo);
-
-                try {
-                    writer.write(chunk);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                break;
-            }
-        }
-
-        try {
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
 		return "RESTORED";
