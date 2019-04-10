@@ -198,7 +198,7 @@ public class Server implements ServerRMI {
     String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg) {
         return message_type + " " + version + " " + id + " " + fileId + " "
                 + (chunkNo != null ? chunkNo.longValue() : "") + " "
-                + (replicationDeg != null ? replicationDeg.byteValue() : "") + " \r\n\r\n";
+                + (replicationDeg != null ? replicationDeg.byteValue() : "") + " " + Const.CRLF;
     }
 
     /**
@@ -270,7 +270,7 @@ public class Server implements ServerRMI {
 
         int count;
         int chunkNo = 0;
-        byte[] buffer = new byte[64000];
+        byte[] buffer = new byte[Const.BUFFER_SIZE];
         byte[] header;
 		ConcurrentHashMap<Integer, DatagramPacket> packets = new ConcurrentHashMap<>();
 
@@ -291,7 +291,7 @@ public class Server implements ServerRMI {
                 backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
 
                 chunkNo++;
-            } while (count == 64000);
+            } while (count == Const.BUFFER_SIZE);
 
             fileToBackup.close();
         } catch (Exception e) {
