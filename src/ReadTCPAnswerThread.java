@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * Class responsible to handle requests made by TCP
  */
-class ReadTCPAnswerThread extends Thread {
+class ReadTCPAnswerThread implements Runnable {
 
     /**
      * Socket where the message is expected
@@ -77,7 +77,7 @@ class ReadTCPAnswerThread extends Thread {
     private void interpretMessage(byte[] buffer, int length) throws Exception {
 		String[] message = new String(buffer, StandardCharsets.US_ASCII).split(Const.CRLF,2);
 
-        System.out.println("[Peer " + server.id + " MDR] " + message[0]);
+        System.out.println("[Peer " + server.id + " TCP] " + message[0]);
 
 		String[] args = message[0].trim().split(" ");
 		

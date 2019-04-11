@@ -100,7 +100,7 @@ public class MCThread implements Runnable {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
 
-		if (version.equals(Const.VERSION_1_0)) {
+		if (version.equals(Const.VERSION_1_0) || server.version.equals(Const.VERSION_1_0)) {
 			try {
 				chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdr_host),
 						server.mdr_port);
@@ -130,7 +130,6 @@ public class MCThread implements Runnable {
 				outToServer.write(message,0,message.length);
 				clientSocket.close();
 			} catch (Exception e) {
-				//e.printStackTrace();
 				System.err.println("Failed to open socket");
 			}
 		}
@@ -277,11 +276,6 @@ public class MCThread implements Runnable {
         if(serverId == server.id)
 			return;
 
-		for(int i = 0 ; i < args.length ; i++) {
-			System.out.println("arg " + i + ": " + args[i]);
-		}
-
-
 		switch(messageType){
 			case Const.MSG_STORED:
 				chunkNo = Integer.parseInt(args[4]);
@@ -289,7 +283,7 @@ public class MCThread implements Runnable {
 				break;
 			case Const.MSG_GETCHUNK:
 				chunkNo = Integer.parseInt(args[4]);
-				if(!server.version.equals(Const.VERSION_1_0)){
+				if(!version.equals(Const.VERSION_1_0)){
 					address = args[6].substring(2);
 					port = args[7];
 				}

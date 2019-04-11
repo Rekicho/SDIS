@@ -23,6 +23,7 @@ import java.util.Enumeration;
 import java.util.PriorityQueue;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.net.SocketTimeoutException;
 
 /**
  * Class that represents a Peer
@@ -147,7 +148,7 @@ public class Server implements ServerRMI {
 
         loadInfo();
 
-        executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(50);
+        executor = (ThreadPoolExecutor) Executors.newScheduledThreadPool(100);
         executor.execute(new MCThread(this));
         executor.execute(new MDBThread(this));
         executor.execute(new MDRThread(this));
@@ -356,7 +357,8 @@ public class Server implements ServerRMI {
 
         if(version.equals(Const.VERSION_1_1)) {
             try {
-                restoreSocket = new ServerSocket(Integer.parseInt(Const.TCP_PORT));               
+				restoreSocket = new ServerSocket(Integer.parseInt(Const.TCP_PORT));
+				restoreSocket.setSoTimeout(Const.MEDIUM_DELAY);               
             } catch (Exception e) {
                 return Error.TCP_SERVER_SOCKET_CREATION;
             }
@@ -375,8 +377,9 @@ public class Server implements ServerRMI {
             if(version.equals(Const.VERSION_1_0))
                 header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
             else
-                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address,"" + Const.TCP_PORT).getBytes();
-            
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Const.TCP_PORT.toString()).getBytes();
+			
+			System.out.println("Header: " + new String(header));
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 
@@ -393,11 +396,16 @@ public class Server implements ServerRMI {
             while(counter < num) {
                 try {
                     connectionSocket = restoreSocket.accept();
-                } catch (IOException e) {
+				} catch (SocketTimeoutException e)  {
+					if(restoredFiles.get(fileId) == null)
+						return "RESTORED";
+
+					else return Error.TCP_ACCEPT_CONNECTION;
+				} catch (IOException e) {
                     return Error.TCP_ACCEPT_CONNECTION;
                 }
 
-                new ReadTCPAnswerThread(this,connectionSocket).start();
+                executor.execute(new ReadTCPAnswerThread(this,connectionSocket));
                 counter++;
             }
 
