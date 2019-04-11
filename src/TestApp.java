@@ -6,8 +6,15 @@ import java.rmi.registry.Registry;
  */
 public class TestApp {
 
+	/**
+	 * Address for the RMI
+	 */
 	private final static String ADDRESS = "localhost";
-    public static void main(String[] args) {
+
+	/**
+	 * Main function for the client application
+	 */
+	public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("Usage: java TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2>");
             System.exit(-1);
@@ -19,7 +26,7 @@ public class TestApp {
 			String response;
 
             switch (args[1]) {
-                case "BACKUP":
+                case Const.REQ_BACKUP:
 					if(args.length != 4)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> BACKUP <file> <replication_degree>");
@@ -31,7 +38,7 @@ public class TestApp {
                     System.out.println("BACKUP " + backup + " : " + response);
 					break;
 
-				case "RESTORE":
+				case Const.REQ_RESTORE:
 					if(args.length != 3)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> RESTORE <file>");
@@ -42,7 +49,7 @@ public class TestApp {
                     System.out.println("RESTORE " + args[2] + " : " + response);
                     break;
 				
-				case "DELETE":
+				case Const.REQ_DELETE:
 					if(args.length != 3)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> DELETE <file>");
@@ -53,7 +60,7 @@ public class TestApp {
                     System.out.println("DELETE " + args[2] + " : " + response);
 					break;
 
-				case "RECLAIM":
+				case Const.REQ_RECLAIM:
 					if(args.length != 3)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> RECLAIM <disk_space>");
@@ -64,7 +71,7 @@ public class TestApp {
                     System.out.println("RECLAIM " + args[2] + " : " + response);
 					break;
 
-				case "STATE":
+				case Const.REQ_STATE:
 					if(args.length != 2)
 					{
 						System.out.println("Usage: java TestApp <peer_ap> STATE");

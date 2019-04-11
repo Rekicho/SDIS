@@ -5,15 +5,36 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+/**
+ * Class responsible to handle requests made by TCP
+ */
 class ReadTCPAnswerThread extends Thread {
+
+    /**
+     * Socket where the message is expected
+     */
     protected Socket socket;
+
+    /**
+     * Server where the socket is
+     */
     protected Server server;
 
+    /**
+     * Constructor for the thread responsible to handle TCP messages
+     * @param server
+     *              Server that received the request
+     * @param clientSocket
+     *              Socket where the request is passed to
+     */
     public ReadTCPAnswerThread(Server server, Socket clientSocket) {
         this.socket = clientSocket;
         this.server = server;
     }
 
+    /**
+     * Message to run the thread
+     */
     @Override
     public void run() {
         InputStream input;
@@ -23,7 +44,6 @@ class ReadTCPAnswerThread extends Thread {
             input = socket.getInputStream();
             inFromClient = new BufferedInputStream(input);
         } catch (Exception e) {
-            System.out.println("nao devia acontecer");
             return;
         }
 
@@ -48,6 +68,12 @@ class ReadTCPAnswerThread extends Thread {
         }
     }
 
+    /**
+     * Interprets the message from the tcp connection
+     * @param buffer
+     * @param length
+     * @throws Exception
+     */
     private void interpretMessage(byte[] buffer, int length) throws Exception {
 		String[] message = new String(buffer, StandardCharsets.US_ASCII).split(Const.CRLF,2);
 

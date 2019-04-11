@@ -41,7 +41,7 @@ public class MDBThread implements Runnable {
         if (Integer.parseInt(args[2]) == server.id || server.backedupFiles.get(args[3]) != null)
             return;
 
-        byte[] response = server.header("STORED", args[3], Integer.parseInt(args[4]), null).getBytes();
+        byte[] response = server.header(Const.MSG_STORED, args[3], Integer.parseInt(args[4]), null).getBytes();
         DatagramPacket responsePacket = new DatagramPacket(response, response.length, InetAddress.getByName(server.mc_host), server.mc_port);
 
 		Random r = new Random();
@@ -69,7 +69,7 @@ public class MDBThread implements Runnable {
 			return;
 		}
 
-		if (!server.version.equals("1.0"))
+		if (!server.version.equals(Const.VERSION_1_0))
 		{
 			int tries;
 			if(server.chunkTries.get(args[3] + "_" + args[4]) == null)
@@ -82,7 +82,7 @@ public class MDBThread implements Runnable {
 
 			float storeProbablity;
 			
-			if(tries == 5)
+			if(tries == Const.MAX_AMOUNT_OF_TRIES)
 				storeProbablity = 1;
 
 			else storeProbablity = (0.1f * tries) + (0.5f * (((float)free_space - body_length) / server.disk_space));
@@ -106,7 +106,6 @@ public class MDBThread implements Runnable {
 
 		server.mc.send(responsePacket);
 		
-        //new File("peer" + server.id + "/backup/" + args[3]).mkdirs();
         FileOutputStream writer = new FileOutputStream("peer" + server.id + "/backup/" + args[3] + "/chk" + args[4]);
         try{writer.write(Arrays.copyOfRange(buffer,i,length));
         writer.close();}catch(Exception e){}
@@ -123,7 +122,7 @@ public class MDBThread implements Runnable {
             try {
                 server.mdb.receive(receivePacket);
             } catch (Exception e) {
-                System.err.println("MDB channel error");
+                System.err.println(Error.SEND_MULTICAST_MDB);
                 System.exit(0);
 			}
 			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
@@ -134,7 +133,7 @@ public class MDBThread implements Runnable {
                     try {
                         interpretMessage(newBuffer, length);
                     } catch (Exception e) {
-						System.err.println("MDB channel error");
+						System.err.println(Error.SEND_MULTICAST_MDB);
 						e.printStackTrace();
                         System.exit(0);
                     }

@@ -70,7 +70,7 @@ public class MDRThread implements Runnable {
             try {
                 server.mdr.receive(receivePacket);
             } catch (Exception e) {
-                System.err.println("MDR channel error");
+                System.err.println(Error.SEND_MULTICAST_MDR);
                 System.exit(0);
 			}
 			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
@@ -81,7 +81,7 @@ public class MDRThread implements Runnable {
                     try {
                         interpretMessage(newBuffer, length);
                     } catch (Exception e) {
-                        System.err.println("MDR channel error");
+                        System.err.println(Error.SEND_MULTICAST_MDR);
                         System.exit(0);
                     }
                 }

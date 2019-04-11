@@ -12,6 +12,15 @@ public final class Const {
     public static final String MSG_REMOVED = "REMOVED";
 
     /**
+     * Client messages
+     */
+    public static final String REQ_BACKUP = "BACKUP";
+    public static final String REQ_RESTORE = "RESTORE";
+    public static final String REQ_DELETE = "DELETE";
+    public static final String REQ_RECLAIM = "RECLAIM";
+    public static final String REQ_STATE = "STATE";
+
+    /**
      * Data Backup Messages
      */
     public static final String MDB_PUTCHUNK = "PUTCHUNK";
