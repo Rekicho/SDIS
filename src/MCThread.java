@@ -96,7 +96,7 @@ public class MCThread implements Runnable {
 	 * @param chunkNo
 	 * 				Number of the chunk that is contained in the
 	 */
-	private void sendChunk(String version, byte[] message, String fileId, int chunkNo) {
+	private void sendChunk(String version, byte[] message, String fileId, int chunkNo, String address, int port) {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
 
@@ -123,9 +123,8 @@ public class MCThread implements Runnable {
 			}
 		} else if (version.equals(Const.VERSION_1_1)) {
 			try {
-				Socket clientSocket = new Socket("localhost", 6789);
+				Socket clientSocket = new Socket(address, port);
 				DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-				System.out.println("Wrote: " + message.length + " bytes");
 				
 				outToServer.write(message,0,message.length);
 				clientSocket.close();
@@ -144,7 +143,7 @@ public class MCThread implements Runnable {
 	 * @param chunkNo
 	 * 				Number of the chunk
 	 */
-	private void receivedGetChunkMsg(String version, String fileId, int chunkNo) {
+	private void receivedGetChunkMsg(String version, String fileId, int chunkNo, String address, int port) {
 		String chunkFileName = fileId + "_" + chunkNo;
 		if(server.storedChunks.get(chunkFileName) == null)
 			return;
@@ -166,7 +165,7 @@ public class MCThread implements Runnable {
 		System.arraycopy(header, 0, message, 0, header.length);
 		System.arraycopy(new_buffer, 0, message, header.length, filesize);
 
-		sendChunk(version,message,fileId,chunkNo);
+		sendChunk(version,message,fileId,chunkNo,address, port);
 	}
 
 	/**
@@ -270,6 +269,8 @@ public class MCThread implements Runnable {
 		int serverId = Integer.parseInt(args[2]);
 		String fileId = args[3];
 		int chunkNo;
+		String address = null;
+		int port = 0;
 
         if(serverId == server.id)
 			return;
@@ -281,7 +282,14 @@ public class MCThread implements Runnable {
 				break;
 			case Const.MSG_GETCHUNK:
 				chunkNo = Integer.parseInt(args[4]);
-				receivedGetChunkMsg(version,fileId, chunkNo);
+				if(!server.version.equals(Const.VERSION_1_0)){
+					address = args[5].substring(2);
+					port = Integer.parseInt(args[6]);
+					System.out.println(address);
+					System.out.println(port);
+				}
+				
+				receivedGetChunkMsg(version,fileId, chunkNo,address, port);
 				break;
 			case Const.MSG_DELETE:
 				receivedDeleteMsg(fileId);

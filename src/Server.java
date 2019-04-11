@@ -212,6 +212,31 @@ public class Server implements ServerRMI {
     }
 
     /**
+     * Creates a String of a header for restore protocols with higher version
+     * @param message_type
+     *                  Type of the message
+     * @param fileId
+     *                  Identifier of the file
+     * @param chunkNo
+     *                  Number of the chunk
+     * @param replicationDeg
+     *                  Replication degree
+     * @param ipAddress
+     *                  Address to forward the message
+     * @param Port
+     *                  Port to forward the message
+     * @return
+     *                  Header String
+     */
+    String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg, String ipAddress, Integer Port){
+        return message_type + " " + version + " " + id + " " + fileId + " "
+                + (chunkNo != null ? chunkNo.longValue() : "") + " "
+                + (replicationDeg != null ? replicationDeg.byteValue() : "") + " " + Const.NEW_LINE + 
+                ipAddress + " " + Port + " " + Const.CRLF;
+    }
+
+
+    /**
      * Converter of a byte array into a char array
      * 
      * @param info Information to be converted
@@ -328,17 +353,32 @@ public class Server implements ServerRMI {
     private String sendRestoreMsg(BackupFile backupFile, String fileId) {
         byte[] header;
         DatagramPacket restorePacket;
+        String address = null;
 
         if(version.equals(Const.VERSION_1_1)) {
             try {
-                restoreSocket = new ServerSocket(6789);                
+                restoreSocket = new ServerSocket(Const.TCP_PORT);               
             } catch (Exception e) {
                 return Error.TCP_SERVER_SOCKET_CREATION;
             }
+
+            try {
+                address = InetAddress.getLocalHost().getHostAddress();
+            } catch (Exception e) {
+                return Error.FAILED_TO_READ_IP;
+            }
+            
+            
         }
 
         for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
-            header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
+
+            if(version.equals(Const.VERSION_1_0))
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
+            else
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address,Const.TCP_PORT).getBytes();
+
+                
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 

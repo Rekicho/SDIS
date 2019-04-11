@@ -15,6 +15,7 @@ public final class Error {
      */
     public static final String TCP_SERVER_SOCKET_CREATION = "TCP Server Socket failed to be created";
     public static final String TCP_ACCEPT_CONNECTION = "TCP Server failed to connect to client";
+    public static final String FAILED_TO_READ_IP = "Failed to read local ip address";
 
     /**
      * Multicast Errors

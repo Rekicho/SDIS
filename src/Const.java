@@ -52,6 +52,7 @@ public final class Const {
      * Utils strings
      */
     public static final String CRLF = "\r\n\r\n";
+    public static final String NEW_LINE = "\r\n";
     public static final String SHA256 = "SHA-256";
 
     /**
@@ -59,4 +60,9 @@ public final class Const {
      */
     public static final String VERSION_1_0 = "1.0";
     public static final String VERSION_1_1 = "1.1";
+
+    /**
+     * TCP 
+     */
+    public static final int TCP_PORT = 6789;
 }
