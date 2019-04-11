@@ -41,7 +41,7 @@ public class MDBThread implements Runnable {
         if (Integer.parseInt(args[2]) == server.id || server.backedupFiles.get(args[3]) != null)
             return;
 
-        byte[] response = server.header(Const.MSG_STORED, args[3], Integer.parseInt(args[4]), null).getBytes();
+        byte[] response = server.header(Const.MSG_STORED, args[3], Integer.parseInt(args[4]), null).getBytes(StandardCharsets.US_ASCII);
         DatagramPacket responsePacket = new DatagramPacket(response, response.length, InetAddress.getByName(server.mc_host), server.mc_port);
 
 		Random r = new Random();
@@ -115,7 +115,7 @@ public class MDBThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run() {
-        byte[] buffer = new byte[64100];
+        byte[] buffer = new byte[65000];
 
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);

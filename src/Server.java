@@ -24,6 +24,7 @@ import java.util.PriorityQueue;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Class that represents a Peer
@@ -229,7 +230,7 @@ public class Server implements ServerRMI {
      *                  Header String
      */
     String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg, String ipAddress, String port){
-        return message_type + " " + version + " " + id + " " + fileId + " "
+		return message_type + " " + version + " " + id + " " + fileId + " "
                 + (chunkNo != null ? chunkNo.longValue() : "") + " "
                 + (replicationDeg != null ? replicationDeg.byteValue() : "") + " " + Const.NEW_LINE + 
                 ipAddress + " " + port + " " + Const.CRLF;
@@ -265,7 +266,7 @@ public class Server implements ServerRMI {
 
             MessageDigest digest = MessageDigest.getInstance(Const.SHA256);
             byte[] info = digest
-                    .digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
+                    .digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes(StandardCharsets.US_ASCII));
 
             return new String(hexString(info));
         } catch (Exception e) {
@@ -315,7 +316,7 @@ public class Server implements ServerRMI {
             do {
                 count = fileToBackup.read(buffer);
 
-                header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
+                header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).getBytes(StandardCharsets.US_ASCII);
 
                 byte[] message = new byte[header.length + count];
                 System.arraycopy(header, 0, message, 0, header.length);
@@ -369,17 +370,14 @@ public class Server implements ServerRMI {
                 return Error.FAILED_TO_READ_IP;
             }
             
-            
         }
 
         for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
-
             if(version.equals(Const.VERSION_1_0))
-                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
-            else
-                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Const.TCP_PORT.toString()).getBytes();
-			
-			System.out.println("Header: " + new String(header));
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes(StandardCharsets.US_ASCII);
+			else
+				header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Const.TCP_PORT).getBytes(StandardCharsets.US_ASCII);
+
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 
@@ -473,7 +471,7 @@ public class Server implements ServerRMI {
         }
 
 		try{
-			byte[] header = header(Const.MSG_DELETE, fileId, null, null).getBytes();
+			byte[] header = header(Const.MSG_DELETE, fileId, null, null).getBytes(StandardCharsets.US_ASCII);
 			DatagramPacket deletePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 	
 			System.out.println("[Peer " + id + "] Delete file " + fileId);
@@ -509,7 +507,7 @@ public class Server implements ServerRMI {
 			space_used.set(space_used.get() - chunk.size);			
 			storedChunks.remove(chunk.id);
 
-			byte[] header = header(Const.MSG_REMOVED, fileId, chunkNo, null).getBytes();
+			byte[] header = header(Const.MSG_REMOVED, fileId, chunkNo, null).getBytes(StandardCharsets.US_ASCII);
 
 			try {
 				DatagramPacket removedPacket = new DatagramPacket(Arrays.copyOf(header, header.length), header.length, InetAddress.getByName(mc_host), mc_port);

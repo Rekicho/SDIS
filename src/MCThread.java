@@ -151,7 +151,7 @@ public class MCThread implements Runnable {
 
 		int filesize;
 		FileInputStream fileToRestore;
-		byte[] header = (server.header("CHUNK", fileId, chunkNo, null)).getBytes();
+		byte[] header = (server.header("CHUNK", fileId, chunkNo, null)).getBytes(StandardCharsets.US_ASCII);
 		byte[] new_buffer = new byte[Const.BUFFER_SIZE];
 
 		try {
@@ -224,7 +224,7 @@ public class MCThread implements Runnable {
 
 			try {
 				byte[] chunkBuffer = new byte[Const.BUFFER_SIZE];
-				byte[] header = server.header(Const.MDB_PUTCHUNK, fileId, chunkNo, chunk.expectedReplicationDegree).getBytes();
+				byte[] header = server.header(Const.MDB_PUTCHUNK, fileId, chunkNo, chunk.expectedReplicationDegree).getBytes(StandardCharsets.US_ASCII);
 				int tries = 1;
 				File chunkFile = new File(pathFileId + "/chk" + chunkNo);
 				InputStream chunkToBackup = new FileInputStream(chunkFile);
@@ -306,7 +306,7 @@ public class MCThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run(){
-        byte[] buffer = new byte[100];
+        byte[] buffer = new byte[1000];
         while(true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
             try {

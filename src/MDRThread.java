@@ -63,7 +63,7 @@ public class MDRThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run() {
-        byte[] buffer = new byte[64100];
+        byte[] buffer = new byte[65000];
 
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);

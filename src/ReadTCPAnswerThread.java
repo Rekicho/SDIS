@@ -47,7 +47,7 @@ class ReadTCPAnswerThread implements Runnable {
             return;
         }
 
-        byte[] chunk = new byte[64100];
+        byte[] chunk = new byte[65000];
         while (true) {
             int length = -1;
             try {
