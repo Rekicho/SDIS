@@ -143,7 +143,7 @@ public class Server implements ServerRMI {
         restoredFiles = new ConcurrentHashMap<>();
 		restoredChunkMessages = new ConcurrentSkipListSet<>();
 		
-		if(!version.equals("1.0"))
+		if(!version.equals(Const.VERSION_1_0))
 			chunkTries = new ConcurrentHashMap<>();
 
         loadInfo();
@@ -238,7 +238,7 @@ public class Server implements ServerRMI {
             Path path = Paths.get(file.getAbsolutePath());
             BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
 
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance(Const.SHA256);
             byte[] info = digest
                     .digest((file.getName() + attr.creationTime() + attr.lastModifiedTime() + attr.size()).getBytes());
 
@@ -256,7 +256,9 @@ public class Server implements ServerRMI {
      */
     public String backup(String request) {
         request = request.trim();
+        
         System.out.println("[Peer " + this.id + "] BACKUP " + request);
+        
         String[] args = request.split(" ", 2);
 
         File file;
@@ -267,7 +269,7 @@ public class Server implements ServerRMI {
             fileToBackup = new FileInputStream(file);
 
         } catch (Exception e) {
-            return "FILE_NOT_FOUND";
+            return Error.FILE_NOT_FOUND;
         }
 
         String fileId = generateId(file);
@@ -288,7 +290,7 @@ public class Server implements ServerRMI {
             do {
                 count = fileToBackup.read(buffer);
 
-                header = header("PUTCHUNK", fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
+                header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).getBytes();
 
                 byte[] message = new byte[header.length + count];
                 System.arraycopy(header, 0, message, 0, header.length);
@@ -305,7 +307,7 @@ public class Server implements ServerRMI {
 
             fileToBackup.close();
         } catch (Exception e) {
-            return "FILE I/O ERROR";
+            return Error.FILE_IO;
         }
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
@@ -313,43 +315,41 @@ public class Server implements ServerRMI {
 		for(int i = 0; i < Const.MAX_BACKUP_THREADS && i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
 
-		return "BACKED_UP";
+		return "File Successfully Backed Up";
     }
 
+    /**
+     * Send a restore message
+     * @param backupFile
+     *              
+     * @param fileId
+     * @return
+     */
     private String sendRestoreMsg(BackupFile backupFile, String fileId) {
         byte[] header;
         DatagramPacket restorePacket;
-        System.out.println("entrei aqui");
 
-        /* SETUP DO TCP */
         if(version.equals(Const.VERSION_1_1)) {
-            System.out.println("aqui tambem");
             try {
-                restoreSocket = new ServerSocket(6789);
-                System.out.println("aqui tambem sim");
-                
-                
+                restoreSocket = new ServerSocket(6789);                
             } catch (Exception e) {
-                return "error";
+                return Error.TCP_SERVER_SOCKET_CREATION;
             }
         }
 
-        /* ENVIAR OS PEDIDOS */
         for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
-            header = header("GETCHUNK", fileId, chunkNo, null).getBytes();
+            header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 
                 System.out.println("[Peer " + id + "] Restore file " + fileId + " chunk no." + chunkNo);
                 mc.send(restorePacket);
             } catch (Exception e) {
-                return "ERROR";
+                return Error.SEND_MULTICAST_MC;
             }
         }
         
-        if(version.equals(Const.VERSION_1_0)){
-            
-        }else if(version.equals(Const.VERSION_1_1)){
+        if(version.equals(Const.VERSION_1_1)){
             int counter = 0;
             int num = backupFile.chunks.size();
             while(counter < num) {
@@ -357,7 +357,7 @@ public class Server implements ServerRMI {
                 try {
                     connectionSocket = restoreSocket.accept();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    return Error.TCP_ACCEPT_CONNECTION;
                 }
 
                 new ReadTCPAnswerThread(this,connectionSocket).start();
@@ -383,16 +383,15 @@ public class Server implements ServerRMI {
 
         try {
             file = new File(request);
-
         } catch (Exception e) {
-            return "FILE_NOT_FOUND";
+            return Error.FILE_NOT_FOUND;
         }
 
         String fileId = generateId(file);
         BackupFile backupFile;
 
         if ((backupFile = backedupFiles.get(fileId)) == null)
-            return "FILE_NOT_BACKED_UP";
+            return Error.FILE_NOT_BACKED_UP;
 
 		restoredFiles.put(fileId, new RestoredFile("peer" + id + "/restored/" + request,backupFile.chunks.size()));
 
@@ -416,7 +415,7 @@ public class Server implements ServerRMI {
             file = new File(request);
 
         } catch (Exception e) {
-            return "FILE_NOT_FOUND";
+            return Error.FILE_NOT_FOUND;
         }
 
 		String fileId = generateId(file);
@@ -429,23 +428,28 @@ public class Server implements ServerRMI {
         }
 
 		try{
-			byte[] header = header("DELETE", fileId, null, null).getBytes();
+			byte[] header = header(Const.MSG_DELETE, fileId, null, null).getBytes();
 			DatagramPacket deletePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 	
 			System.out.println("[Peer " + id + "] Delete file " + fileId);
 			mc.send(deletePacket);
 		} catch(Exception e) {
-			return "ERROR";
+			return Error.SEND_MULTICAST_MC;
 		}
 	
 		return "DELETED";
 	}
 
+    /**
+     * Reclaims memory space from a peer
+     * @param request
+     *              Details of the reclaim
+     */
 	public String reclaim(String request) {
 		int space_requested = Integer.parseInt(request.trim());
 
 		if(space_requested < 0)
-			return "INVALID SPACE SIZE";
+			return Error.INVALID_SPACE;
 
 		disk_space = space_requested * Const.KBYTES_TO_BYTES;
 
@@ -460,7 +464,7 @@ public class Server implements ServerRMI {
 			space_used.set(space_used.get() - chunk.size);			
 			storedChunks.remove(chunk.id);
 
-			byte[] header = header("REMOVED", fileId, chunkNo, null).getBytes();
+			byte[] header = header(Const.MSG_REMOVED, fileId, chunkNo, null).getBytes();
 
 			try {
 				DatagramPacket removedPacket = new DatagramPacket(Arrays.copyOf(header, header.length), header.length, InetAddress.getByName(mc_host), mc_port);

@@ -12,6 +12,11 @@ public final class Const {
     public static final String MSG_REMOVED = "REMOVED";
 
     /**
+     * Data Backup Messages
+     */
+    public static final String MDB_PUTCHUNK = "PUTCHUNK";
+
+    /**
      * Sizes
      */
     public static final int BUFFER_SIZE = 64000;
@@ -38,6 +43,7 @@ public final class Const {
      * Utils strings
      */
     public static final String CRLF = "\r\n\r\n";
+    public static final String SHA256 = "SHA-256";
 
     /**
      * Available Versions

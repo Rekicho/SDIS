@@ -48,6 +48,15 @@ public class MCThread implements Runnable {
 		folder.delete();
 	}
 
+	/**
+	 * Thread received a storage message. This function handles it
+	 * @param serverId
+	 * 				Peer from which the request came
+	 * @param fileId
+	 * 				File id to be stored
+	 * @param chunkNo
+	 * 				Number of the chunk to be stored
+	 */
 	private void receivedStorageMsg(int serverId, String fileId, int chunkNo) {
 		String chunkFileName = fileId + "_" + chunkNo;
 		BackupFile backedUpFile = server.backedupFiles.get(fileId);
@@ -59,11 +68,14 @@ public class MCThread implements Runnable {
 		} else if (chunk != null) {
 			chunk.storedServers.incrementAndGet();
 			chunk.save("peer" + server.id + "/backup/" + fileId + "/chk" + chunkNo + ".ser");
-		} else {
-			// TODO
 		}
 	}
 
+	/**
+	 * Sleeps for a random amount of time from 0 to argument 'time'
+	 * @param time
+	 * 				Max time to be waited
+	 */
 	private void sleepRandom(int time) {
 		try {
 			Random r = new Random();
@@ -73,6 +85,17 @@ public class MCThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Sends a chunk
+	 * @param version
+	 * 				Version of the protocol to be used
+	 * @param message
+	 * 				Message to be sent
+	 * @param fileId
+	 * 				Id of the file which the chunk is a part of
+	 * @param chunkNo
+	 * 				Number of the chunk that is contained in the message
+	 */
 	private void sendChunk(String version, byte[] message, String fileId, int chunkNo) {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
