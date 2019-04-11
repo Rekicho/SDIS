@@ -118,7 +118,6 @@ public class Server implements ServerRMI {
     private Server(String version, int id, String mc_host, int mc_port, String mdb_host, int mdb_port, String mdr_host,
             int mdr_port) throws Exception {
         this.version = version;
-        System.out.println(version);
         this.id = id;
 		this.disk_space = 1000000000;
 		this.space_used = new AtomicInteger(0);
@@ -228,11 +227,11 @@ public class Server implements ServerRMI {
      * @return
      *                  Header String
      */
-    String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg, String ipAddress, Integer Port){
+    String header(String message_type, String fileId, Integer chunkNo, Integer replicationDeg, String ipAddress, String port){
         return message_type + " " + version + " " + id + " " + fileId + " "
                 + (chunkNo != null ? chunkNo.longValue() : "") + " "
                 + (replicationDeg != null ? replicationDeg.byteValue() : "") + " " + Const.NEW_LINE + 
-                ipAddress + " " + Port + " " + Const.CRLF;
+                ipAddress + " " + port + " " + Const.CRLF;
     }
 
 
@@ -357,7 +356,7 @@ public class Server implements ServerRMI {
 
         if(version.equals(Const.VERSION_1_1)) {
             try {
-                restoreSocket = new ServerSocket(Const.TCP_PORT);               
+                restoreSocket = new ServerSocket(Integer.parseInt(Const.TCP_PORT));               
             } catch (Exception e) {
                 return Error.TCP_SERVER_SOCKET_CREATION;
             }
@@ -376,9 +375,8 @@ public class Server implements ServerRMI {
             if(version.equals(Const.VERSION_1_0))
                 header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes();
             else
-                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address,Const.TCP_PORT).getBytes();
-
-                
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address,"" + Const.TCP_PORT).getBytes();
+            
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
 
@@ -393,7 +391,6 @@ public class Server implements ServerRMI {
             int counter = 0;
             int num = backupFile.chunks.size();
             while(counter < num) {
-                System.out.println(counter);
                 try {
                     connectionSocket = restoreSocket.accept();
                 } catch (IOException e) {

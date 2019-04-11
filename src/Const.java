@@ -64,5 +64,5 @@ public final class Const {
     /**
      * TCP 
      */
-    public static final int TCP_PORT = 6789;
+    public static final String TCP_PORT = "67";
 }

@@ -96,9 +96,12 @@ public class MCThread implements Runnable {
 	 * @param chunkNo
 	 * 				Number of the chunk that is contained in the
 	 */
-	private void sendChunk(String version, byte[] message, String fileId, int chunkNo, String address, int port) {
+	private void sendChunk(String version, byte[] message, String fileId, int chunkNo, String address, String port) {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
+
+		System.out.println("Addres: " + address);
+		System.out.println("Port: " + port);
 
 		if (version.equals(Const.VERSION_1_0)) {
 			try {
@@ -121,15 +124,17 @@ public class MCThread implements Runnable {
 				server.mdr.send(chunkPacket);
 			} catch (Exception e) {
 			}
-		} else if (version.equals(Const.VERSION_1_1)) {
+		} else {
+			
 			try {
-				Socket clientSocket = new Socket(address, port);
+				Socket clientSocket = new Socket(address, Integer.parseInt(port));
 				DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
 				
 				outToServer.write(message,0,message.length);
 				clientSocket.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				//e.printStackTrace();
+				System.err.println("Failed to open socket");
 			}
 		}
 	}
@@ -143,7 +148,7 @@ public class MCThread implements Runnable {
 	 * @param chunkNo
 	 * 				Number of the chunk
 	 */
-	private void receivedGetChunkMsg(String version, String fileId, int chunkNo, String address, int port) {
+	private void receivedGetChunkMsg(String version, String fileId, int chunkNo, String address, String port) {
 		String chunkFileName = fileId + "_" + chunkNo;
 		if(server.storedChunks.get(chunkFileName) == null)
 			return;
@@ -270,10 +275,15 @@ public class MCThread implements Runnable {
 		String fileId = args[3];
 		int chunkNo;
 		String address = null;
-		int port = 0;
+		String port = null;
 
         if(serverId == server.id)
 			return;
+
+		for(int i = 0 ; i < args.length ; i++) {
+			System.out.println("arg " + i + ": " + args[i]);
+		}
+
 
 		switch(messageType){
 			case Const.MSG_STORED:
@@ -283,10 +293,8 @@ public class MCThread implements Runnable {
 			case Const.MSG_GETCHUNK:
 				chunkNo = Integer.parseInt(args[4]);
 				if(!server.version.equals(Const.VERSION_1_0)){
-					address = args[5].substring(2);
-					port = Integer.parseInt(args[6]);
-					System.out.println(address);
-					System.out.println(port);
+					address = args[6].substring(2);
+					port = args[7];
 				}
 				
 				receivedGetChunkMsg(version,fileId, chunkNo,address, port);

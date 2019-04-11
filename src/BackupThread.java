@@ -26,8 +26,7 @@ public class BackupThread implements Runnable {
         			return;
 
                 do {
-                    System.out.println(
-                            "[Peer " + server.id + "] Send chunk " + chunkNumber + " from " + backupFile.fileID + "(try n " + tries + ")");
+                    System.out.println("[Peer " + server.id + "] Send chunk " + chunkNumber + " from " + backupFile.fileID + "(try n " + tries + ")");
                     server.mdb.send(packets.get(chunkNumber));
 
                     Thread.sleep(tries * Const.SECONDS_TO_MILI);
