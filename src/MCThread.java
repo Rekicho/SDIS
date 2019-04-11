@@ -94,7 +94,7 @@ public class MCThread implements Runnable {
 	 * @param fileId
 	 * 				Id of the file which the chunk is a part of
 	 * @param chunkNo
-	 * 				Number of the chunk that is contained in the message
+	 * 				Number of the chunk that is contained in the
 	 */
 	private void sendChunk(String version, byte[] message, String fileId, int chunkNo) {
 		DatagramPacket chunkPacket;
@@ -135,6 +135,15 @@ public class MCThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Handles the message of a get chunk
+	 * @param version
+	 * 				Version of the protocol to be used
+	 * @param fileId
+	 * 				Id of the file
+	 * @param chunkNo
+	 * 				Number of the chunk
+	 */
 	private void receivedGetChunkMsg(String version, String fileId, int chunkNo) {
 		String chunkFileName = fileId + "_" + chunkNo;
 		if(server.storedChunks.get(chunkFileName) == null)
@@ -160,6 +169,11 @@ public class MCThread implements Runnable {
 		sendChunk(version,message,fileId,chunkNo);
 	}
 
+	/**
+	 * Handles the message of a delete message
+	 * @param fileId
+	 * 				Id of the file
+	 */
 	private void receivedDeleteMsg(String fileId) {
 		Enumeration<String> keys = server.storedChunks.keys();
 		String key;
@@ -178,6 +192,15 @@ public class MCThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Handles the removed message
+	 * @param serverId
+	 * 				Identifier of the server
+	 * @param fileId
+	 * 				Identifier of the file
+	 * @param chunkNo
+	 * 				Number of the chunk
+	 */
 	private void receivedRemovedMsg(int serverId, String fileId, int chunkNo) {
 		BackupFile backedUpFile = server.backedupFiles.get(fileId);
 		Chunk chunk = server.storedChunks.get(fileId + "_" + chunkNo);
@@ -201,7 +224,7 @@ public class MCThread implements Runnable {
 
 			try {
 				byte[] chunkBuffer = new byte[Const.BUFFER_SIZE];
-				byte[] header = server.header("PUTCHUNK", fileId, chunkNo, chunk.expectedReplicationDegree).getBytes();
+				byte[] header = server.header(Const.MDB_PUTCHUNK, fileId, chunkNo, chunk.expectedReplicationDegree).getBytes();
 				int tries = 1;
 				File chunkFile = new File(pathFileId + "/chk" + chunkNo);
 				InputStream chunkToBackup = new FileInputStream(chunkFile);
@@ -282,7 +305,7 @@ public class MCThread implements Runnable {
             try {
                 server.mc.receive(receivePacket);
             } catch (Exception e) {
-                System.err.println("MC channel error");
+                System.err.println(Error.SEND_MULTICAST_MC);
                 System.exit(0);
 			}
 			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
@@ -292,7 +315,7 @@ public class MCThread implements Runnable {
                     try {
                         interpretMessage(newBuffer);
                     } catch (Exception e) {
-                        System.err.println("MC channel error");
+                        System.err.println(Error.SEND_MULTICAST_MC);
                         System.exit(0);
                     }
                 }

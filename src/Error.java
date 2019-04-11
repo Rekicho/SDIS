@@ -20,7 +20,7 @@ public final class Error {
      * Multicast Errors
      */
     public static final String SEND_MULTICAST_MC = "Error sending datagram packet to multicast control channel";
-
+    public static final String SEND_MULTICAST_MDR = "Error sending datagram packet to multicast data recovery channel";
 
     /**
      * Edge cases
