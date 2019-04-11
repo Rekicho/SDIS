@@ -100,9 +100,6 @@ public class MCThread implements Runnable {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
 
-		System.out.println("Addres: " + address);
-		System.out.println("Port: " + port);
-
 		if (version.equals(Const.VERSION_1_0)) {
 			try {
 				chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdr_host),
