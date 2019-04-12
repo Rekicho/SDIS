@@ -1,1 +1,32 @@
-GRUPO 7
+Compiling:
+
+    javac *.java
+
+Executing:
+
+    cd <source_folder_path>
+    rmiregistry
+
+    Peers:
+
+        java Peer <version> <peerID> <RemoteObjectName> <MC_ADDRESS> <MC_PORT> <MDB_ADDRESS> <MDB_PORT> <MDR_ADDRESS> <MDR_PORT>
+
+    TestApp:
+
+        java TestApp <RemoteObjectName> <sub_protocol> <opnd_1> <opnd_2>
+
+Using Scripts:
+    chmod +x *.sh
+
+    ./peer.sh <peerID> -> Assumes some default settings (channels address and port, RMI object name)
+                          Executes one peer with ID = <peerID>
+                          If not specified ID = 1
+
+    ./test.sh <sub_protocol> <opnd_1> <opnd_2> -> Executes one testApp wit specified arguments
+                                                  Assumes RMI object name
+                                        
+    ./run.sh <start_PeerID> <end_PeerID> -> Executes (end - start + 1) peers with ID from start to end
+                                            Peers use same default settings as peer.sh
+                                            Executes one test sub_protocol (default backup, but can be changed by commenting / uncommenct TestApp lines on script)
+
+                
