@@ -33,7 +33,7 @@ public class MDRThread implements Runnable {
 
 		String[] args = message[0].trim().split(" ");
 		
-		if (Integer.parseInt(args[2]) == peer.id)
+		if (!args[0].equals(Const.MDR_CHUNK) || Integer.parseInt(args[2]) == peer.id)
 			return;
 
 		int i = 0;

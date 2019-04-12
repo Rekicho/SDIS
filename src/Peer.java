@@ -96,8 +96,7 @@ public class Peer implements PeerRMI {
      */
     ThreadPoolExecutor executor;
 
-    ServerSocket restoreSocket;
-    Socket connectionSocket;
+    AtomicInteger restoresCount;
 
     /**
      * Auxiliar char array for hexadecimal conversion
@@ -142,7 +141,10 @@ public class Peer implements PeerRMI {
         backedupFiles = new ConcurrentHashMap<>();
         storedChunks = new ConcurrentHashMap<>();
         restoredFiles = new ConcurrentHashMap<>();
+
 		restoredChunkMessages = new ConcurrentSkipListSet<>();
+
+        restoresCount = new AtomicInteger(0);
 		
 		if(!version.equals(Const.VERSION_1_0))
 			chunkTries = new ConcurrentHashMap<>();
@@ -338,7 +340,7 @@ public class Peer implements PeerRMI {
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
 
-		for(int i = 0; i < Const.MAX_BACKUP_THREADS && i < packets.size(); i++)
+		for(int i = 0; i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
 
 		return "File Successfully Backed Up";
@@ -352,13 +354,17 @@ public class Peer implements PeerRMI {
      * @return
      */
     private String sendRestoreMsg(BackupFile backupFile, String fileId) {
+        ServerSocket restoreSocket = null;
+        Socket connectionSocket = null;
+
         byte[] header;
         DatagramPacket restorePacket;
         String address = null;
+        int restores = restoresCount.getAndIncrement();
 
         if(version.equals(Const.VERSION_1_1)) {
             try {
-				restoreSocket = new ServerSocket(Integer.parseInt(Const.TCP_PORT));
+				restoreSocket = new ServerSocket(Const.TCP_BASE_PORT + restores);
 				restoreSocket.setSoTimeout(Const.MEDIUM_DELAY);               
             } catch (Exception e) {
                 return Error.TCP_SERVER_SOCKET_CREATION;
@@ -376,7 +382,7 @@ public class Peer implements PeerRMI {
             if(version.equals(Const.VERSION_1_0))
                 header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes(StandardCharsets.US_ASCII);
 			else
-				header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Const.TCP_PORT).getBytes(StandardCharsets.US_ASCII);
+				header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Integer.toString(Const.TCP_BASE_PORT + restores)).getBytes(StandardCharsets.US_ASCII);
 
             try {
                 restorePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
@@ -408,6 +414,7 @@ public class Peer implements PeerRMI {
             }
 
         }
+
         return "RESTORED";
     }
 
