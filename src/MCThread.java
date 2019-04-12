@@ -107,35 +107,23 @@ public class MCThread implements Runnable {
 			return;
 		}
 
+		sleepRandom(Const.SMALL_DELAY);
+
+
+		if (peer.restoredChunkMessages.contains(chunkFileName)) {
+			peer.restoredChunkMessages.remove(chunkFileName);
+			return;
+		}
+
+		System.out.println("[Peer " + peer.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
+
+
 		if (version.equals(Const.VERSION_1_0) || peer.version.equals(Const.VERSION_1_0)) {
-			sleepRandom(Const.SMALL_DELAY);
-
-			if (peer.restoredChunkMessages.contains(chunkFileName)) {
-				peer.restoredChunkMessages.remove(chunkFileName);
-				return;
-			}
-
-			System.out.println("[Peer " + peer.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
-
 			try {
 				peer.mdr.send(chunkPacket);
 			} catch (Exception e) {
 			}
 		} else {
-			sleepRandom(Const.SMALL_DELAY / 2);
-
-			if (peer.restoredChunkMessages.contains(chunkFileName)) {
-				peer.restoredChunkMessages.remove(chunkFileName);
-				return;
-			}
-
-			System.out.println("[Peer " + peer.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
-
-			try {
-				peer.mdr.send(chunkPacket);
-			} catch (Exception e) {
-			}
-			
 			try {
 				Socket clientSocket = new Socket(address, Integer.parseInt(port));
 				DataOutputStream outToPeer = new DataOutputStream(clientSocket.getOutputStream());
@@ -175,15 +163,9 @@ public class MCThread implements Runnable {
 			return;
 		}
 
-		byte[] message;
-
-		if (version.equals(Const.VERSION_1_0) || peer.version.equals(Const.VERSION_1_0)) { 
-			message = new byte[header.length + filesize];
-			System.arraycopy(header, 0, message, 0, header.length);
-			System.arraycopy(new_buffer, 0, message, header.length, filesize);
-		} else {
-			message = header;
-		}
+		byte[] message = new byte[header.length + filesize];
+		System.arraycopy(header, 0, message, 0, header.length);
+		System.arraycopy(new_buffer, 0, message, header.length, filesize);
 		
 		sendChunk(version,message,fileId,chunkNo,address, port);
 	}
