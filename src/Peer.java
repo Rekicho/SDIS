@@ -338,7 +338,7 @@ public class Peer implements PeerRMI {
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
 
-		for(int i = 0; i < Const.MAX_BACKUP_THREADS && i < packets.size(); i++)
+		for(int i = 0; i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
 
 		return "File Successfully Backed Up";

@@ -26,6 +26,11 @@ public final class Const {
     public static final String MDB_PUTCHUNK = "PUTCHUNK";
 
     /**
+     * Data Reclaim Messages
+     */
+    public static final String MDR_CHUNK = "CHUNK";
+
+    /**
      * Sizes
      */
     public static final int BUFFER_SIZE = 64000;
@@ -46,7 +51,6 @@ public final class Const {
      * Protocol constants
      */
     public static final int MAX_AMOUNT_OF_TRIES = 5;
-    public static final int MAX_BACKUP_THREADS = 5;
     
     /**
      * Utils strings

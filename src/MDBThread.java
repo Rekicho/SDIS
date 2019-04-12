@@ -38,7 +38,7 @@ public class MDBThread implements Runnable {
 
         String[] args = message[0].trim().split(" ");
 
-        if (Integer.parseInt(args[2]) == peer.id || peer.backedupFiles.get(args[3]) != null)
+        if (!args[0].equals(Const.MDB_PUTCHUNK) || Integer.parseInt(args[2]) == peer.id || peer.backedupFiles.get(args[3]) != null)
             return;
 
         byte[] response = peer.header(Const.MSG_STORED, args[3], Integer.parseInt(args[4]), null).getBytes(StandardCharsets.US_ASCII);
