@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Random;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Thread for the Multicast Control Channel
@@ -178,9 +180,11 @@ public class MCThread implements Runnable {
 	private void receivedDeleteMsg(String fileId) {
 		Enumeration<String> keys = peer.storedChunks.keys();
 		String key;
+		boolean hasFiles = false;
 		while(keys.hasMoreElements()) {
 			key = keys.nextElement();
 			if(key.contains(fileId)){
+				hasFiles = true;
 				peer.space_used.set(peer.space_used.get() - peer.storedChunks.get(key).size);
 				peer.storedChunks.remove(key);
 			}	
@@ -191,6 +195,39 @@ public class MCThread implements Runnable {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		if(hasFiles){
+			sendDeletedMessage(fileId);
+		}
+		
+	}
+
+	private void sendDeletedMessage(String fileId) {
+		byte[] header = peer.header("DELETED", peer.id, fileId).getBytes(StandardCharsets.US_ASCII);
+        DatagramPacket deletedPacket;
+
+        try {
+            deletedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(peer.mc_host), peer.mc_port);
+
+            System.out.println("[Peer " + peer.id + "] Deleted " + fileId);
+            peer.mc.send(deletedPacket);
+        } catch (Exception e) {
+            return;
+        }
+	}
+
+	private void sendDeleteMessage(String fileId) {
+		byte[] header = peer.header(Const.MSG_DELETE, fileId, null, null).getBytes(StandardCharsets.US_ASCII);
+        DatagramPacket deletedPacket;
+
+        try {
+            deletedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(peer.mc_host), peer.mc_port);
+
+            System.out.println("[Peer " + peer.id + "] Delete " + fileId + "egyfkhefjfrebererhgbealjhgberhg bruno gay");
+            peer.mc.send(deletedPacket);
+        } catch (Exception e) {
+            return;
+        }
 	}
 
 	/**
@@ -257,6 +294,25 @@ public class MCThread implements Runnable {
 		}
 	}
 
+	private void receivedDeletedMsg(int peerId, String fileId) {
+		ConcurrentSkipListSet<String> listFiles = peer.deletedFiles.get(peerId);
+		if(listFiles == null) return;
+		listFiles.remove(fileId);
+	}
+
+	private void receivedHelloMsg(int peerId) {
+		ConcurrentSkipListSet<String> listFiles = peer.deletedFiles.get(peerId);
+		if(listFiles==null) return;
+		String fileId;
+		Iterator<String> keys = listFiles.iterator();
+		while(keys.hasNext()){
+			fileId = keys.next();
+			sendDeleteMessage(fileId);
+		}
+
+		peer.deletedFiles.remove(peerId);
+	}
+
 	/**
 	 * Interprets the message received
 	 * @param buffer
@@ -268,8 +324,15 @@ public class MCThread implements Runnable {
         String[] args = new String(buffer, StandardCharsets.US_ASCII).trim().split(" ");
 		String messageType = args[0];
 		String version = args[1];
-		int peerId = Integer.parseInt(args[2]);
-		String fileId = args[3];
+		int peerId = 0;
+		String fileId = null;
+		
+		if(args.length > 2)
+			peerId = Integer.parseInt(args[2]);
+
+		if(args.length > 3)
+			fileId = args[3];
+
 		int chunkNo;
 		String address = null;
 		String port = null;
@@ -298,6 +361,13 @@ public class MCThread implements Runnable {
 				chunkNo = Integer.parseInt(args[4]);
 				receivedRemovedMsg(peerId, fileId, chunkNo);
 				break;
+			case "DELETED":
+				receivedDeletedMsg(peerId, fileId);
+				break;
+
+			case "HELLO":
+				receivedHelloMsg(peerId);
+				break;
 			default:
 				break;
 		}	
@@ -313,6 +383,7 @@ public class MCThread implements Runnable {
             try {
                 peer.mc.receive(receivePacket);
             } catch (Exception e) {
+				System.out.println("lel1");
                 System.err.println(Error.SEND_MULTICAST_MC);
                 System.exit(0);
 			}
@@ -323,6 +394,8 @@ public class MCThread implements Runnable {
                     try {
                         interpretMessage(newBuffer);
                     } catch (Exception e) {
+						System.out.println("lel2");
+						e.printStackTrace();
                         System.err.println(Error.SEND_MULTICAST_MC);
                         System.exit(0);
                     }

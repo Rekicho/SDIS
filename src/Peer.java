@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 
 /**
  * Class that represents a Peer
@@ -76,6 +77,8 @@ public class Peer implements PeerRMI {
      * Information for the BackedupFiles by this Peer
      */
     ConcurrentHashMap<String, BackupFile> backedupFiles;
+
+    ConcurrentHashMap<Integer, ConcurrentSkipListSet<String>> deletedFiles;
 
     /**
      * Information for the stored chunks by this Peer
@@ -141,7 +144,7 @@ public class Peer implements PeerRMI {
         backedupFiles = new ConcurrentHashMap<>();
         storedChunks = new ConcurrentHashMap<>();
         restoredFiles = new ConcurrentHashMap<>();
-
+        deletedFiles = new ConcurrentHashMap<>();
 		restoredChunkMessages = new ConcurrentSkipListSet<>();
 
         restoresCount = new AtomicInteger(0);
@@ -155,6 +158,22 @@ public class Peer implements PeerRMI {
         executor.execute(new MCThread(this));
         executor.execute(new MDBThread(this));
         executor.execute(new MDRThread(this));
+
+        sendEntryMessage();
+    }
+
+    private void sendEntryMessage() {
+        byte[] header = header("HELLO",id,null).getBytes(StandardCharsets.US_ASCII);
+        DatagramPacket helloPacket;
+
+        try {
+            helloPacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+
+            System.out.println("[Peer " + id + "] Hello Network");
+            mc.send(helloPacket);
+        } catch (Exception e) {
+            return ;
+        }
     }
 
     /**
@@ -212,6 +231,11 @@ public class Peer implements PeerRMI {
         return message_type + " " + version + " " + id + " " + fileId + " "
                 + (chunkNo != null ? chunkNo.longValue() : "") + " "
                 + (replicationDeg != null ? replicationDeg.byteValue() : "") + " " + Const.CRLF;
+    }
+
+    
+    String header(String message_type, Integer serverId, String fileId) {
+        return message_type + " " + version + " " + serverId + " " + (fileId != null? fileId : "") + " " + Const.CRLF;
     }
 
     /**
@@ -365,7 +389,7 @@ public class Peer implements PeerRMI {
         if(version.equals(Const.VERSION_1_1)) {
             try {
 				restoreSocket = new ServerSocket(Const.TCP_BASE_PORT + restores);
-				restoreSocket.setSoTimeout(Const.MEDIUM_DELAY);               
+				restoreSocket.setSoTimeout(Const.MEDIUM_DELAY);
             } catch (Exception e) {
                 return Error.TCP_SERVER_SOCKET_CREATION;
             }
@@ -470,6 +494,10 @@ public class Peer implements PeerRMI {
 
 		String fileId = generateId(file);
 
+        if(!version.equals(Const.VERSION_1_0)){
+            updateDeletedFiles(fileId);
+        }
+
 		backedupFiles.remove(fileId);
 
 		try {
@@ -489,6 +517,31 @@ public class Peer implements PeerRMI {
 	
 		return "DELETED";
 	}
+
+    private void updateDeletedFiles(String fileId) {
+        BackupFile bFile = backedupFiles.get(fileId);
+        if(bFile == null) return;
+
+        Enumeration<Integer> keys = bFile.chunks.keys();
+        Integer key;
+
+        while(keys.hasMoreElements()){
+            key = keys.nextElement();
+
+            Iterator<Integer> iterator = bFile.chunks.get(key).iterator();
+
+            while(iterator.hasNext()) {
+                Integer serverId = iterator.next();
+            
+                ConcurrentSkipListSet<String> listFiles = deletedFiles.get(serverId);
+                if(listFiles == null){
+                    listFiles = new ConcurrentSkipListSet<String>();
+                }
+                listFiles.add(fileId);
+                deletedFiles.put(serverId,listFiles);
+            }
+        } 
+    }
 
     /**
      * Reclaims memory space from a peer
