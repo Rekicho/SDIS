@@ -18,15 +18,15 @@ public class MCThread implements Runnable {
 	/**
 	 * Peer associated with the Thread
 	 */
-	private Server server;
+	private Peer peer;
 
 	/**
 	 * Constructor for the Multicast Control Channel Thread
 	 * 
-	 * @param server Peer associated with the Thread
+	 * @param peer Peer associated with the Thread
 	 */
-	MCThread(Server server) {
-		this.server = server;
+	MCThread(Peer peer) {
+		this.peer = peer;
 	}
 
 	/**
@@ -50,24 +50,24 @@ public class MCThread implements Runnable {
 
 	/**
 	 * Thread received a storage message. This function handles it
-	 * @param serverId
+	 * @param peerId
 	 * 				Peer from which the request came
 	 * @param fileId
 	 * 				File id to be stored
 	 * @param chunkNo
 	 * 				Number of the chunk to be stored
 	 */
-	private void receivedStorageMsg(int serverId, String fileId, int chunkNo) {
+	private void receivedStorageMsg(int peerId, String fileId, int chunkNo) {
 		String chunkFileName = fileId + "_" + chunkNo;
-		BackupFile backedUpFile = server.backedupFiles.get(fileId);
-		Chunk chunk = server.storedChunks.get(chunkFileName);
+		BackupFile backedUpFile = peer.backedupFiles.get(fileId);
+		Chunk chunk = peer.storedChunks.get(chunkFileName);
 
 		if (backedUpFile != null) {
-			backedUpFile.chunks.get(chunkNo).add(serverId);
-			backedUpFile.save("peer" + server.id + "/backup/" + fileId + ".ser");
+			backedUpFile.chunks.get(chunkNo).add(peerId);
+			backedUpFile.save("peer" + peer.id + "/backup/" + fileId + ".ser");
 		} else if (chunk != null) {
-			chunk.storedServers.incrementAndGet();
-			chunk.save("peer" + server.id + "/backup/" + fileId + "/chk" + chunkNo + ".ser");
+			chunk.storedPeers.incrementAndGet();
+			chunk.save("peer" + peer.id + "/backup/" + fileId + "/chk" + chunkNo + ".ser");
 		}
 	}
 
@@ -100,34 +100,34 @@ public class MCThread implements Runnable {
 		DatagramPacket chunkPacket;
 		String chunkFileName = fileId + "_" + chunkNo;
 
-		if (version.equals(Const.VERSION_1_0) || server.version.equals(Const.VERSION_1_0)) {
+		if (version.equals(Const.VERSION_1_0) || peer.version.equals(Const.VERSION_1_0)) {
 			try {
-				chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdr_host),
-						server.mdr_port);
+				chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(peer.mdr_host),
+						peer.mdr_port);
 			} catch (Exception e) {
 				return;
 			}
 
 			sleepRandom(Const.SMALL_DELAY);
 
-			if (server.restoredChunkMessages.contains(chunkFileName)) {
-				server.restoredChunkMessages.remove(chunkFileName);
+			if (peer.restoredChunkMessages.contains(chunkFileName)) {
+				peer.restoredChunkMessages.remove(chunkFileName);
 				return;
 			}
 
-			System.out.println("[Peer " + server.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
+			System.out.println("[Peer " + peer.id + "] Sending restore file " + fileId + " chunk no. " + chunkNo);
 
 			try {
-				server.mdr.send(chunkPacket);
+				peer.mdr.send(chunkPacket);
 			} catch (Exception e) {
 			}
 		} else {
 			
 			try {
 				Socket clientSocket = new Socket(address, Integer.parseInt(port));
-				DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+				DataOutputStream outToPeer = new DataOutputStream(clientSocket.getOutputStream());
 				
-				outToServer.write(message,0,message.length);
+				outToPeer.write(message,0,message.length);
 				clientSocket.close();
 			} catch (Exception e) {
 				System.err.println("Failed to open socket");
@@ -146,16 +146,16 @@ public class MCThread implements Runnable {
 	 */
 	private void receivedGetChunkMsg(String version, String fileId, int chunkNo, String address, String port) {
 		String chunkFileName = fileId + "_" + chunkNo;
-		if(server.storedChunks.get(chunkFileName) == null)
+		if(peer.storedChunks.get(chunkFileName) == null)
 			return;
 
 		int filesize;
 		FileInputStream fileToRestore;
-		byte[] header = (server.header("CHUNK", fileId, chunkNo, null)).getBytes(StandardCharsets.US_ASCII);
+		byte[] header = (peer.header("CHUNK", fileId, chunkNo, null)).getBytes(StandardCharsets.US_ASCII);
 		byte[] new_buffer = new byte[Const.BUFFER_SIZE];
 
 		try {
-			fileToRestore = new FileInputStream(new File("peer" + server.id + "/backup/" + fileId + "/chk" + chunkNo));
+			fileToRestore = new FileInputStream(new File("peer" + peer.id + "/backup/" + fileId + "/chk" + chunkNo));
 			filesize = fileToRestore.read(new_buffer);
 			fileToRestore.close();
 		} catch (Exception e) {
@@ -175,18 +175,18 @@ public class MCThread implements Runnable {
 	 * 				Id of the file
 	 */
 	private void receivedDeleteMsg(String fileId) {
-		Enumeration<String> keys = server.storedChunks.keys();
+		Enumeration<String> keys = peer.storedChunks.keys();
 		String key;
 		while(keys.hasMoreElements()) {
 			key = keys.nextElement();
 			if(key.contains(fileId)){
-				server.space_used.set(server.space_used.get() - server.storedChunks.get(key).size);
-				server.storedChunks.remove(key);
+				peer.space_used.set(peer.space_used.get() - peer.storedChunks.get(key).size);
+				peer.storedChunks.remove(key);
 			}	
 		}
 
 		try {
-			deleteFolder(new File("peer" + server.id + "/backup/" + fileId));
+			deleteFolder(new File("peer" + peer.id + "/backup/" + fileId));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -194,24 +194,24 @@ public class MCThread implements Runnable {
 
 	/**
 	 * Handles the removed message
-	 * @param serverId
-	 * 				Identifier of the server
+	 * @param peerId
+	 * 				Identifier of the peer
 	 * @param fileId
 	 * 				Identifier of the file
 	 * @param chunkNo
 	 * 				Number of the chunk
 	 */
-	private void receivedRemovedMsg(int serverId, String fileId, int chunkNo) {
-		BackupFile backedUpFile = server.backedupFiles.get(fileId);
-		Chunk chunk = server.storedChunks.get(fileId + "_" + chunkNo);
-		String pathFileId = "peer" + server.id + "/backup/" + fileId;
+	private void receivedRemovedMsg(int peerId, String fileId, int chunkNo) {
+		BackupFile backedUpFile = peer.backedupFiles.get(fileId);
+		Chunk chunk = peer.storedChunks.get(fileId + "_" + chunkNo);
+		String pathFileId = "peer" + peer.id + "/backup/" + fileId;
 
 		if(backedUpFile != null) {
-			backedUpFile.chunks.get(chunkNo).remove(serverId);
+			backedUpFile.chunks.get(chunkNo).remove(peerId);
 			backedUpFile.save(pathFileId + ".ser");
 		}
 		else if(chunk != null) {			
-			int actualRepDeg = chunk.storedServers.decrementAndGet();
+			int actualRepDeg = chunk.storedPeers.decrementAndGet();
 			chunk.save(pathFileId + "/chk" + chunkNo + ".ser");
 		
 			if(actualRepDeg >= chunk.expectedReplicationDegree)
@@ -219,12 +219,12 @@ public class MCThread implements Runnable {
 
 			sleepRandom(Const.SMALL_DELAY);
 
-			if(actualRepDeg < chunk.storedServers.get())
+			if(actualRepDeg < chunk.storedPeers.get())
 				return;
 
 			try {
 				byte[] chunkBuffer = new byte[Const.BUFFER_SIZE];
-				byte[] header = server.header(Const.MDB_PUTCHUNK, fileId, chunkNo, chunk.expectedReplicationDegree).getBytes(StandardCharsets.US_ASCII);
+				byte[] header = peer.header(Const.MDB_PUTCHUNK, fileId, chunkNo, chunk.expectedReplicationDegree).getBytes(StandardCharsets.US_ASCII);
 				int tries = 1;
 				File chunkFile = new File(pathFileId + "/chk" + chunkNo);
 				InputStream chunkToBackup = new FileInputStream(chunkFile);
@@ -234,15 +234,15 @@ public class MCThread implements Runnable {
 				System.arraycopy(header, 0, message, 0, header.length);
 				System.arraycopy(chunkBuffer, 0, message, header.length, count);
 				
-				DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(server.mdb_host), server.mdb_port);
+				DatagramPacket chunkPacket = new DatagramPacket(message, message.length, InetAddress.getByName(peer.mdb_host), peer.mdb_port);
 
 				do {
-					System.out.println("[Peer " + server.id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
-					server.mdb.send(chunkPacket);
+					System.out.println("[Peer " + peer.id + "] Send chunk " + chunkNo + " from " + fileId + "(try n " + tries + ")");
+					peer.mdb.send(chunkPacket);
 					
 					Thread.sleep(tries * Const.SECONDS_TO_MILI);
 
-					if(chunk.storedServers.get() >= chunk.expectedReplicationDegree)
+					if(chunk.storedPeers.get() >= chunk.expectedReplicationDegree)
 						break;
 
 					tries++;
@@ -262,24 +262,24 @@ public class MCThread implements Runnable {
 	 * 			Buffer with the message content to be interpreted
 	 */
     private void interpretMessage(byte[] buffer) {
-        System.out.println("[Peer " + server.id + " MC] " + (new String(buffer).trim()));
+        System.out.println("[Peer " + peer.id + " MC] " + (new String(buffer).trim()));
 
         String[] args = new String(buffer, StandardCharsets.US_ASCII).trim().split(" ");
 		String messageType = args[0];
 		String version = args[1];
-		int serverId = Integer.parseInt(args[2]);
+		int peerId = Integer.parseInt(args[2]);
 		String fileId = args[3];
 		int chunkNo;
 		String address = null;
 		String port = null;
 
-        if(serverId == server.id)
+        if(peerId == peer.id)
 			return;
 
 		switch(messageType){
 			case Const.MSG_STORED:
 				chunkNo = Integer.parseInt(args[4]);
-				receivedStorageMsg(serverId,fileId,chunkNo);
+				receivedStorageMsg(peerId,fileId,chunkNo);
 				break;
 			case Const.MSG_GETCHUNK:
 				chunkNo = Integer.parseInt(args[4]);
@@ -295,7 +295,7 @@ public class MCThread implements Runnable {
 				break;
 			case Const.MSG_REMOVED:
 				chunkNo = Integer.parseInt(args[4]);
-				receivedRemovedMsg(serverId, fileId, chunkNo);
+				receivedRemovedMsg(peerId, fileId, chunkNo);
 				break;
 			default:
 				break;
@@ -310,13 +310,13 @@ public class MCThread implements Runnable {
         while(true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
             try {
-                server.mc.receive(receivePacket);
+                peer.mc.receive(receivePacket);
             } catch (Exception e) {
                 System.err.println(Error.SEND_MULTICAST_MC);
                 System.exit(0);
 			}
 			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
-            server.executor.execute(new Runnable() {
+            peer.executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {

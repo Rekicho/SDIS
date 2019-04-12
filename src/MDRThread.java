@@ -10,15 +10,15 @@ public class MDRThread implements Runnable {
     /**
 	 * Peer associated with the Thread
 	 */
-    private Server server;
+    private Peer peer;
 
     /**
 	 * Constructor for the Multicast Data Recovery Thread
-	 * @param server
+	 * @param peer
 	 * 			Peer associated with the Thread
 	 */
-    MDRThread(Server server){
-        this.server = server;
+    MDRThread(Peer peer){
+        this.peer = peer;
 	}
 
     /**
@@ -29,11 +29,11 @@ public class MDRThread implements Runnable {
 	private void interpretMessage(byte[] buffer, int length) throws Exception {
 		String[] message = new String(buffer, StandardCharsets.US_ASCII).split(Const.CRLF,2);
 
-        System.out.println("[Peer " + server.id + " MDR] " + message[0]);
+        System.out.println("[Peer " + peer.id + " MDR] " + message[0]);
 
 		String[] args = message[0].trim().split(" ");
 		
-		if (Integer.parseInt(args[2]) == server.id)
+		if (Integer.parseInt(args[2]) == peer.id)
 			return;
 
 		int i = 0;
@@ -41,20 +41,20 @@ public class MDRThread implements Runnable {
 	
 		i += 4;
 
-		if(server.restoredFiles.get(args[3]) == null)
+		if(peer.restoredFiles.get(args[3]) == null)
 		{
-			server.restoredChunkMessages.add(args[3] + "_" + args[4]);
+			peer.restoredChunkMessages.add(args[3] + "_" + args[4]);
 			return;
 		}
 
-		if(server.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
-			server.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
+		if(peer.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
+			peer.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
 			
-			if(server.restoredFiles.get(args[3]).isComplete())
+			if(peer.restoredFiles.get(args[3]).isComplete())
 			{
-				server.restoredFiles.get(args[3]).createFile();
-				System.out.println("[Peer " + server.id + "] File " + server.restoredFiles.get(args[3]).fileName() + " restored.");
-				server.restoredFiles.remove(args[3]);
+				peer.restoredFiles.get(args[3]).createFile();
+				System.out.println("[Peer " + peer.id + "] File " + peer.restoredFiles.get(args[3]).fileName() + " restored.");
+				peer.restoredFiles.remove(args[3]);
 			}
 		}
 	}
@@ -68,14 +68,14 @@ public class MDRThread implements Runnable {
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
             try {
-                server.mdr.receive(receivePacket);
+                peer.mdr.receive(receivePacket);
             } catch (Exception e) {
                 System.err.println(Error.SEND_MULTICAST_MDR);
                 System.exit(0);
 			}
 			byte[] newBuffer = Arrays.copyOf(buffer,buffer.length);
 			int length = receivePacket.getLength();
-            server.executor.execute(new Runnable() {
+            peer.executor.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {

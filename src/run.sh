@@ -1,5 +1,5 @@
 # GLOBAL INFORMATION
-ACCESS_POINT="ServerRMI"
+ACCESS_POINT="PeerRMI"
 
 # SERVER INFORMATION
 VERSION_APP="1.0"
@@ -20,7 +20,7 @@ sleep 1
 # RUN THE SERVERS
 for i in $(seq $FROM_SERVER_ID $TO_SERVER_ID)
 do 
-	start ./server.sh $i
+	start ./peer.sh $i
 done
 
 start ./client.sh BACKUP test1.pdf 3

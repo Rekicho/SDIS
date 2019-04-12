@@ -2,7 +2,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 /**
- * Class to represent Client acessing a peer server
+ * Class to represent Client acessing a peer peer
  */
 public class TestApp {
 
@@ -22,7 +22,7 @@ public class TestApp {
 
         try {
             Registry registry = LocateRegistry.getRegistry(ADDRESS);
-			ServerRMI stub = (ServerRMI) registry.lookup(args[0]);
+			PeerRMI stub = (PeerRMI) registry.lookup(args[0]);
 			String response;
 
             switch (args[1]) {

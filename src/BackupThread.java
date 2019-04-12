@@ -3,14 +3,14 @@ import java.net.DatagramPacket;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BackupThread implements Runnable {
-	Server server;
+	Peer peer;
 	ConcurrentHashMap<Integer, DatagramPacket> packets;
 	AtomicInteger actualChunk;
 	BackupFile backupFile;
 
 	
-	BackupThread(Server server, ConcurrentHashMap<Integer, DatagramPacket> packets, AtomicInteger actualChunk, BackupFile backupFile) {
-		this.server = server;
+	BackupThread(Peer peer, ConcurrentHashMap<Integer, DatagramPacket> packets, AtomicInteger actualChunk, BackupFile backupFile) {
+		this.peer = peer;
 		this.packets = packets;
 		this.actualChunk = actualChunk;
 		this.backupFile = backupFile;
@@ -26,8 +26,8 @@ public class BackupThread implements Runnable {
         			return;
 
                 do {
-                    System.out.println("[Peer " + server.id + "] Send chunk " + chunkNumber + " from " + backupFile.fileID + "(try n " + tries + ")");
-                    server.mdb.send(packets.get(chunkNumber));
+                    System.out.println("[Peer " + peer.id + "] Send chunk " + chunkNumber + " from " + backupFile.fileID + "(try n " + tries + ")");
+                    peer.mdb.send(packets.get(chunkNumber));
 
                     Thread.sleep(tries * Const.SECONDS_TO_MILI);
 

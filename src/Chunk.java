@@ -31,9 +31,9 @@ public class Chunk implements Serializable, Comparable<Chunk> {
     int expectedReplicationDegree;
 
     /**
-     * Number of servers which have this chunk saved
+     * Number of peers which have this chunk saved
      */
-    AtomicInteger storedServers;
+    AtomicInteger storedPeers;
 
     /**
      * Constructor for the class Chunk
@@ -48,7 +48,7 @@ public class Chunk implements Serializable, Comparable<Chunk> {
         this.id = id;
         this.size = size;
         this.expectedReplicationDegree = expectedReplicationDegree;
-        storedServers = new AtomicInteger(1);
+        storedPeers = new AtomicInteger(1);
     }
 
     /**
@@ -92,14 +92,14 @@ public class Chunk implements Serializable, Comparable<Chunk> {
      * Create a string with all the information of the object Chunk
      */
 	public String toString() {
-		return id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedServers + "\n";
+		return id + "\n\tSize: " + size + "\n\tPerceived Replication Degree: " + storedPeers + "\n";
 	}
 
     /**
      * Overload of the compare function based on the amount of redundant information of the chunk
      */
 	public int compareTo(Chunk other) {
-		int res = (other.size * (other.storedServers.get() - other.expectedReplicationDegree)) - (size * (storedServers.get() - expectedReplicationDegree));
+		int res = (other.size * (other.storedPeers.get() - other.expectedReplicationDegree)) - (size * (storedPeers.get() - expectedReplicationDegree));
 
 		if(res == 0)
 			return other.size - size;

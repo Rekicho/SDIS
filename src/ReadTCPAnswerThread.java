@@ -16,20 +16,20 @@ class ReadTCPAnswerThread implements Runnable {
     protected Socket socket;
 
     /**
-     * Server where the socket is
+     * Peer where the socket is
      */
-    protected Server server;
+    protected Peer peer;
 
     /**
      * Constructor for the thread responsible to handle TCP messages
-     * @param server
-     *              Server that received the request
+     * @param peer
+     *              Peer that received the request
      * @param clientSocket
      *              Socket where the request is passed to
      */
-    public ReadTCPAnswerThread(Server server, Socket clientSocket) {
+    public ReadTCPAnswerThread(Peer peer, Socket clientSocket) {
         this.socket = clientSocket;
-        this.server = server;
+        this.peer = peer;
     }
 
     /**
@@ -91,11 +91,11 @@ class ReadTCPAnswerThread implements Runnable {
     private void interpretMessage(byte[] buffer, int length) throws Exception {
 		String[] message = new String(buffer, StandardCharsets.US_ASCII).split(Const.CRLF,2);
 
-        System.out.println("[Peer " + server.id + " TCP] " + message[0]);
+        System.out.println("[Peer " + peer.id + " TCP] " + message[0]);
 
 		String[] args = message[0].trim().split(" ");
 		
-		if (Integer.parseInt(args[2]) == server.id)
+		if (Integer.parseInt(args[2]) == peer.id)
 			return;
 
 		int i = 0;
@@ -103,20 +103,20 @@ class ReadTCPAnswerThread implements Runnable {
 	
 		i += 4;
 
-		if(server.restoredFiles.get(args[3]) == null)
+		if(peer.restoredFiles.get(args[3]) == null)
 		{
-			server.restoredChunkMessages.add(args[3] + "_" + args[4]);
+			peer.restoredChunkMessages.add(args[3] + "_" + args[4]);
 			return;
 		}
 
-		if(server.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
-			server.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
+		if(peer.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
+			peer.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
 			
-			if(server.restoredFiles.get(args[3]).isComplete())
+			if(peer.restoredFiles.get(args[3]).isComplete())
 			{
-				server.restoredFiles.get(args[3]).createFile();
-				System.out.println("[Peer " + server.id + "] File " + server.restoredFiles.get(args[3]).fileName() + " restored.");
-                server.restoredFiles.remove(args[3]);
+				peer.restoredFiles.get(args[3]).createFile();
+				System.out.println("[Peer " + peer.id + "] File " + peer.restoredFiles.get(args[3]).fileName() + " restored.");
+                peer.restoredFiles.remove(args[3]);
                 return;
 			}
         }
