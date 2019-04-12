@@ -48,23 +48,37 @@ class ReadTCPAnswerThread implements Runnable {
         }
 
         byte[] chunk = new byte[65000];
+        int chunk_length = 0;
+
         while (true) {
+            byte[] buffer = new byte[65000];
             int length = -1;
+
             try {
-                length = inFromClient.read(chunk);
-                interpretMessage(chunk, length);
+                length = inFromClient.read(buffer);
+                
+                if(length != -1)
+                {
+                    byte[] new_chunk = new byte[65000];
+                    System.arraycopy(chunk, 0, new_chunk, 0, chunk_length);
+                    System.arraycopy(buffer, 0, new_chunk, chunk_length, length);
+
+                    chunk = new_chunk;
+                    chunk_length += length;
+                    continue;
+                }
+
+                interpretMessage(Arrays.copyOf(chunk, chunk_length), chunk_length);   
             } catch (Exception e) {
                 e.printStackTrace();
             }
             
-            if(length == -1){
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return;
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            return;
         }
     }
 
