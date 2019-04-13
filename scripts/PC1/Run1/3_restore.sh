@@ -1,0 +1,1 @@
+gnome-terminal -e  "./test.sh RESTORE png.png" 
