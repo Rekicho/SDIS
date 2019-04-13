@@ -362,11 +362,24 @@ public class Peer implements PeerRMI {
         }
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
+		AtomicInteger threadsLeft = new AtomicInteger(packets.size());
+		AtomicInteger errors = new AtomicInteger(0);
 
 		for(int i = 0; i < packets.size(); i++)
-			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
+			executor.execute(new BackupThread(this, packets, actualChunk, backupFile, threadsLeft, errors));
 
-		return "File Successfully Backed Up";
+		while(threadsLeft.get() != 0) {
+			try{
+				Thread.sleep(100);
+			} catch(Exception e) {}
+		}
+
+		int missing = errors.get();
+
+		if(missing == 0)
+			return "File Successfully Backed Up";
+
+		return missing + " chunks could not be backed up";
 	}
 
 	/**
@@ -435,11 +448,25 @@ public class Peer implements PeerRMI {
 		}
 
 		AtomicInteger actualChunk = new AtomicInteger(0);
+		AtomicInteger threadsLeft = new AtomicInteger(packets.size());
+		AtomicInteger errors = new AtomicInteger(0);
 
 		for(int i = 0; i < packets.size(); i++)
-			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
+			executor.execute(new BackupThread(this, packets, actualChunk, backupFile, threadsLeft, errors));
 
-		return "File Successfully Backed Up";
+		while(threadsLeft.get() != 0)
+		{
+			try{
+				Thread.sleep(100);
+			} catch(Exception e) {}
+		}
+
+		int missing = errors.get();
+
+		if(missing == 0)
+			return "File Successfully Backed Up";
+
+		return missing + " chunks could not be backed up";
 	}
 
     /**
@@ -509,7 +536,13 @@ public class Peer implements PeerRMI {
                 counter++;
             }
 
-        }
+		}
+		
+		while(restoredFiles.get(fileId) != null) {
+			try{
+				Thread.sleep(100);
+			} catch(Exception e) {}
+		}
 
         return "RESTORED";
     }
