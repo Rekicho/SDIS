@@ -15,6 +15,6 @@ sleep 1
 # RUN THE PEERS
 for i in 1
 do 
-	gnome-terminal -e "./peer.sh $i"
+	gnome-terminal -- ./peer.sh $i
 done
 

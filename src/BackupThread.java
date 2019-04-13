@@ -40,7 +40,7 @@ public class BackupThread implements Runnable {
 	 * @param backupFile
 	 * 				Class with the information about the desired replication degree of the file
 	 */
-	BackupThread(Peer peer, ConcurrentHashMap<Integer, DatagramPacket> packets, AtomicInteger actualChunk, BackupFile backupFile, AtomicInteger threadleft, AtomicInteger errors) {
+	BackupThread(Peer peer, ConcurrentHashMap<Integer, DatagramPacket> packets, AtomicInteger actualChunk, BackupFile backupFile, AtomicInteger threadsleft, AtomicInteger errors) {
 		this.peer = peer;
 		this.packets = packets;
 		this.actualChunk = actualChunk;
