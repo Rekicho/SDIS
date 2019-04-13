@@ -196,7 +196,7 @@ public class MCThread implements Runnable {
 			e.printStackTrace();
 		}
 
-		if(hasFiles){
+		if(!peer.version.equals(Const.VERSION_1_0) && hasFiles){
 			sendDeletedMessage(fileId);
 		}
 		
@@ -223,7 +223,7 @@ public class MCThread implements Runnable {
         try {
             deletedPacket = new DatagramPacket(header, header.length, InetAddress.getByName(peer.mc_host), peer.mc_port);
 
-            System.out.println("[Peer " + peer.id + "] Delete " + fileId + "egyfkhefjfrebererhgbealjhgberhg bruno gay");
+            System.out.println("[Peer " + peer.id + "] Delete " + fileId);
             peer.mc.send(deletedPacket);
         } catch (Exception e) {
             return;
@@ -295,12 +295,18 @@ public class MCThread implements Runnable {
 	}
 
 	private void receivedDeletedMsg(int peerId, String fileId) {
+		if(peer.version.equals(Const.VERSION_1_0))
+			return;
+		
 		ConcurrentSkipListSet<String> listFiles = peer.deletedFiles.get(peerId);
 		if(listFiles == null) return;
 		listFiles.remove(fileId);
 	}
 
 	private void receivedHelloMsg(int peerId) {
+		if(peer.version.equals(Const.VERSION_1_0))
+			return;
+
 		ConcurrentSkipListSet<String> listFiles = peer.deletedFiles.get(peerId);
 		if(listFiles==null) return;
 		String fileId;

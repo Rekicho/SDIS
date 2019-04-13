@@ -38,6 +38,18 @@ public class TestApp {
                     System.out.println("BACKUP " + backup + " : " + response);
 					break;
 
+				case Const.REQ_BACKUP_ENH:
+					if(args.length != 4)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> BACKUPENH <file> <replication_degree>");
+						System.exit(1);
+					}
+
+                    String backupENH = args[2] + " " + args[3];
+                    response = stub.backupENH(backupENH);
+                    System.out.println("BACKUPENH " + backupENH + " : " + response);
+					break;
+
 				case Const.REQ_RESTORE:
 					if(args.length != 3)
 					{
@@ -47,6 +59,17 @@ public class TestApp {
 
                     response = stub.restore(args[2]);
                     System.out.println("RESTORE " + args[2] + " : " + response);
+					break;
+					
+				case Const.REQ_RESTORE_ENH:
+					if(args.length != 3)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> RESTOREENH <file>");
+						System.exit(1);
+					}
+
+                    response = stub.restoreENH(args[2]);
+                    System.out.println("RESTOREENH " + args[2] + " : " + response);
                     break;
 				
 				case Const.REQ_DELETE:
@@ -57,6 +80,17 @@ public class TestApp {
 					}
 
                     response = stub.delete(args[2]);
+                    System.out.println("DELETE " + args[2] + " : " + response);
+					break;
+
+				case Const.REQ_DELETE_ENH:
+					if(args.length != 3)
+					{
+						System.out.println("Usage: java TestApp <peer_ap> DELETEENH <file>");
+						System.exit(1);
+					}
+
+                    response = stub.deleteENH(args[2]);
                     System.out.println("DELETE " + args[2] + " : " + response);
 					break;
 

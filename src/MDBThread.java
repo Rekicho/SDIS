@@ -69,7 +69,7 @@ public class MDBThread implements Runnable {
 			return;
 		}
 
-		if (!peer.version.equals(Const.VERSION_1_0))
+		if (!peer.version.equals(Const.VERSION_1_0) && !args[1].equals(Const.VERSION_1_0))
 		{
 			int tries;
 			if(peer.chunkTries.get(args[3] + "_" + args[4]) == null)

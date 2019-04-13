@@ -14,9 +14,12 @@ public final class Const {
     /**
      * Client messages
      */
-    public static final String REQ_BACKUP = "BACKUP";
-    public static final String REQ_RESTORE = "RESTORE";
-    public static final String REQ_DELETE = "DELETE";
+	public static final String REQ_BACKUP = "BACKUP";
+	public static final String REQ_BACKUP_ENH = "BACKUPENH";
+	public static final String REQ_RESTORE = "RESTORE";
+	public static final String REQ_RESTORE_ENH = "RESTOREENH";
+	public static final String REQ_DELETE = "DELETE";
+	public static final String REQ_DELETE_ENH = "DELETEENH";
     public static final String REQ_RECLAIM = "RECLAIM";
     public static final String REQ_STATE = "STATE";
 
@@ -60,10 +63,9 @@ public final class Const {
     public static final String SHA256 = "SHA-256";
 
     /**
-     * Available Versions
+     * Versions
      */
     public static final String VERSION_1_0 = "1.0";
-    public static final String VERSION_1_1 = "1.1";
 
     /**
      * TCP 
