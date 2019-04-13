@@ -162,7 +162,7 @@ public class Peer implements PeerRMI {
     }
 
     private void sendEntryMessage() {
-        byte[] header = header("HELLO",id,null).getBytes(StandardCharsets.US_ASCII);
+        byte[] header = header(Const.ENH_HELLO,id,null).getBytes(StandardCharsets.US_ASCII);
         DatagramPacket helloPacket;
 
         try {

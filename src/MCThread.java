@@ -133,7 +133,8 @@ public class MCThread implements Runnable {
 				outToPeer.write(message,0,message.length);
 				clientSocket.close();
 			} catch (Exception e) {
-				System.err.println("Failed to open socket");
+				System.err.println(Error.TCP_SERVER_SOCKET_CREATION);
+				return;
 			}
 		}
 	}
@@ -202,8 +203,13 @@ public class MCThread implements Runnable {
 		
 	}
 
+	/**
+	 * Send a message saying that this peer has deleted the file in argument
+	 * @param fileId
+	 * 				File identifier of the file that the peer has just deleted
+	 */
 	private void sendDeletedMessage(String fileId) {
-		byte[] header = peer.header("DELETED", peer.id, fileId).getBytes(StandardCharsets.US_ASCII);
+		byte[] header = peer.header(Const.ENH_DELETED, peer.id, fileId).getBytes(StandardCharsets.US_ASCII);
         DatagramPacket deletedPacket;
 
         try {
@@ -216,6 +222,11 @@ public class MCThread implements Runnable {
         }
 	}
 
+	/**
+	 * Send a message requesting the deletion of the fileId by the rest of the peers in the network
+	 * @param fileId
+	 * 				File identifier
+	 */
 	private void sendDeleteMessage(String fileId) {
 		byte[] header = peer.header(Const.MSG_DELETE, fileId, null, null).getBytes(StandardCharsets.US_ASCII);
         DatagramPacket deletedPacket;
@@ -294,6 +305,13 @@ public class MCThread implements Runnable {
 		}
 	}
 
+	/**
+	 * Thread received a message from another peer saying they have deleted fileId
+	 * @param peerId
+	 * 				Peer who deleted the file
+	 * @param fileId
+	 * 				File which has been deleted
+	 */
 	private void receivedDeletedMsg(int peerId, String fileId) {
 		if(peer.version.equals(Const.VERSION_1_0))
 			return;
@@ -303,6 +321,12 @@ public class MCThread implements Runnable {
 		listFiles.remove(fileId);
 	}
 
+	/**
+	 * Thread received a message from another peer saying they have just connected to the network.
+	 * It is used to make sure their chunks are updated
+	 * @param peerId
+	 * 				Id of the peer that just joined the network
+	 */
 	private void receivedHelloMsg(int peerId) {
 		if(peer.version.equals(Const.VERSION_1_0))
 			return;
@@ -357,7 +381,6 @@ public class MCThread implements Runnable {
 					address = args[6].substring(2);
 					port = args[7];
 				}
-				
 				receivedGetChunkMsg(version,fileId, chunkNo,address, port);
 				break;
 			case Const.MSG_DELETE:
@@ -367,11 +390,10 @@ public class MCThread implements Runnable {
 				chunkNo = Integer.parseInt(args[4]);
 				receivedRemovedMsg(peerId, fileId, chunkNo);
 				break;
-			case "DELETED":
+			case Const.ENH_DELETED:
 				receivedDeletedMsg(peerId, fileId);
 				break;
-
-			case "HELLO":
+			case Const.ENH_HELLO:
 				receivedHelloMsg(peerId);
 				break;
 			default:
@@ -383,13 +405,12 @@ public class MCThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run(){
-        byte[] buffer = new byte[1000];
+        byte[] buffer = new byte[Const.MAX_HEADER_SIZE];
         while(true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
             try {
                 peer.mc.receive(receivePacket);
             } catch (Exception e) {
-				System.out.println("lel1");
                 System.err.println(Error.SEND_MULTICAST_MC);
                 System.exit(0);
 			}
@@ -400,8 +421,6 @@ public class MCThread implements Runnable {
                     try {
                         interpretMessage(newBuffer);
                     } catch (Exception e) {
-						System.out.println("lel2");
-						e.printStackTrace();
                         System.err.println(Error.SEND_MULTICAST_MC);
                         System.exit(0);
                     }

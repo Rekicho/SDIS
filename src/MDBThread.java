@@ -49,7 +49,7 @@ public class MDBThread implements Runnable {
 		if (peer.storedChunks.get(args[3] + "_" + args[4]) != null)
 		{
 			peer.storedChunks.get(args[3] + "_" + args[4]).storedPeers.set(1);
-			Thread.sleep(r.nextInt(401));
+			Thread.sleep(r.nextInt(Const.SMALL_DELAY));
 	
 			peer.mc.send(responsePacket);
 			return;
@@ -58,9 +58,9 @@ public class MDBThread implements Runnable {
 		int i = 0;
 		for(; i < buffer.length && buffer[i] != 13; i++);
 	
-		i += 4;
+		i += Const.CRLF.length();
 	
-		int body_length = length - i - 4;
+		int body_length = length - i - Const.CRLF.length();
 		int free_space = peer.disk_space - peer.space_used.get(); 
 
 		if(body_length > free_space)
@@ -102,7 +102,7 @@ public class MDBThread implements Runnable {
 
 		peer.space_used.set(peer.space_used.get() + body_length);
 		
-		Thread.sleep(r.nextInt(401));
+		Thread.sleep(r.nextInt(Const.SMALL_DELAY));
 
 		peer.mc.send(responsePacket);
 		
@@ -115,7 +115,7 @@ public class MDBThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run() {
-        byte[] buffer = new byte[65000];
+        byte[] buffer = new byte[Const.BUFFER_SIZE + Const.MAX_HEADER_SIZE];
 
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);

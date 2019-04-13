@@ -39,21 +39,23 @@ public class MDRThread implements Runnable {
 		int i = 0;
 		for(; i < buffer.length && buffer[i] != 13; i++);
 	
-		i += 4;
+		i += Const.CRLF.length();
 
-		if(peer.restoredFiles.get(args[3]) == null)
+		RestoredFile restored = peer.restoredFiles.get(args[3]);
+
+		if(restored == null)
 		{
 			peer.restoredChunkMessages.add(args[3] + "_" + args[4]);
 			return;
 		}
 
-		if(peer.restoredFiles.get(args[3]).chunks.get(Integer.parseInt(args[4])) == null) {
-			peer.restoredFiles.get(args[3]).chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
+		if(restored.chunks.get(Integer.parseInt(args[4])) == null) {
+			restored.chunks.put(Integer.parseInt(args[4]), Arrays.copyOfRange(buffer,i,length));
 			
-			if(peer.restoredFiles.get(args[3]).isComplete())
+			if(restored.isComplete())
 			{
-				peer.restoredFiles.get(args[3]).createFile();
-				System.out.println("[Peer " + peer.id + "] File " + peer.restoredFiles.get(args[3]).fileName() + " restored.");
+				restored.createFile();
+				System.out.println("[Peer " + peer.id + "] File " + restored.fileName() + " restored.");
 				peer.restoredFiles.remove(args[3]);
 			}
 		}
@@ -63,7 +65,7 @@ public class MDRThread implements Runnable {
 	 * Listener for the thread
 	 */
     public void run() {
-        byte[] buffer = new byte[65000];
+        byte[] buffer = new byte[Const.BUFFER_SIZE + Const.MAX_HEADER_SIZE];
 
         while (true) {
             DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);

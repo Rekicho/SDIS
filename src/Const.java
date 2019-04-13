@@ -12,7 +12,13 @@ public final class Const {
     public static final String MSG_REMOVED = "REMOVED";
 
     /**
-     * Client messages
+     * Enhancement Messages
+     */
+    public static final String ENH_DELETED = "DELETED";
+    public static final String ENH_HELLO = "HELLO";
+
+    /**
+     * Client Messages
      */
 	public static final String REQ_BACKUP = "BACKUP";
 	public static final String REQ_BACKUP_ENH = "BACKUPENH";
@@ -37,6 +43,7 @@ public final class Const {
      * Sizes
      */
     public static final int BUFFER_SIZE = 64000;
+    public static final int MAX_HEADER_SIZE = 1000;
 
     /**
      * Conversions
