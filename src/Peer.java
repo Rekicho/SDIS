@@ -146,11 +146,9 @@ public class Peer implements PeerRMI {
         restoredFiles = new ConcurrentHashMap<>();
         deletedFiles = new ConcurrentHashMap<>();
 		restoredChunkMessages = new ConcurrentSkipListSet<>();
+		chunkTries = new ConcurrentHashMap<>();
 
         restoresCount = new AtomicInteger(0);
-		
-		if(!version.equals(Const.VERSION_1_0))
-			chunkTries = new ConcurrentHashMap<>();
 
         loadInfo();
 
@@ -159,7 +157,8 @@ public class Peer implements PeerRMI {
         executor.execute(new MDBThread(this));
         executor.execute(new MDRThread(this));
 
-        sendEntryMessage();
+		if(!version.equals(Const.VERSION_1_0))
+			sendEntryMessage();
     }
 
     private void sendEntryMessage() {
@@ -335,14 +334,14 @@ public class Peer implements PeerRMI {
         int count;
         int chunkNo = 0;
         byte[] buffer = new byte[Const.BUFFER_SIZE];
-        byte[] header;
+		byte[] header;
 		ConcurrentHashMap<Integer, DatagramPacket> packets = new ConcurrentHashMap<>();
 
 		try {
             do {
                 count = fileToBackup.read(buffer);
 
-                header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).getBytes(StandardCharsets.US_ASCII);
+                header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).replace(version, Const.VERSION_1_0).getBytes(StandardCharsets.US_ASCII);
 
                 byte[] message = new byte[header.length + count];
                 System.arraycopy(header, 0, message, 0, header.length);
@@ -368,7 +367,80 @@ public class Peer implements PeerRMI {
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
 
 		return "File Successfully Backed Up";
-    }
+	}
+
+	/**
+     * Backup a file using enhacement
+     * 
+     * @param request Request for the backup of a file
+     * @return String with the information about the success or not of the function
+     */
+	public String backupENH(String request) {
+		if(version.equals(Const.VERSION_1_0))
+			return Error.NOT_SUPPORTED;
+
+		request = request.trim();
+	
+		System.out.println("[Peer " + this.id + "] BACKUPENH " + request);
+		
+		String[] args = request.split(" ", 2);
+
+		File file;
+		InputStream fileToBackup;
+
+		try {
+			file = new File(args[0]);
+			fileToBackup = new FileInputStream(file);
+
+		} catch (Exception e) {
+			return Error.FILE_NOT_FOUND;
+		}
+
+		String fileId = generateId(file);
+
+		BackupFile backupFile = new BackupFile(file.getName(), fileId, Integer.parseInt(args[1]));
+		backedupFiles.put(fileId, backupFile);
+		backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
+
+		System.out.println("[Peer " + id + "] Sending file " + fileId);
+
+		int count;
+		int chunkNo = 0;
+		byte[] buffer = new byte[Const.BUFFER_SIZE];
+		byte[] header;
+		ConcurrentHashMap<Integer, DatagramPacket> packets = new ConcurrentHashMap<>();
+
+		try {
+			do {
+				count = fileToBackup.read(buffer);
+
+				header = header(Const.MDB_PUTCHUNK, fileId, chunkNo, Integer.parseInt(args[1])).getBytes(StandardCharsets.US_ASCII);
+
+				byte[] message = new byte[header.length + count];
+				System.arraycopy(header, 0, message, 0, header.length);
+				System.arraycopy(buffer, 0, message, header.length, count);
+
+				packets.put(chunkNo,new DatagramPacket(message, message.length,
+						InetAddress.getByName(mdb_host), mdb_port));
+
+				backupFile.chunks.put(chunkNo, new ConcurrentSkipListSet<>());
+				backupFile.save("peer" + id + "/backup/" + fileId + ".ser");
+
+				chunkNo++;
+			} while (count == Const.BUFFER_SIZE);
+
+			fileToBackup.close();
+		} catch (Exception e) {
+			return Error.FILE_IO;
+		}
+
+		AtomicInteger actualChunk = new AtomicInteger(0);
+
+		for(int i = 0; i < packets.size(); i++)
+			executor.execute(new BackupThread(this, packets, actualChunk, backupFile));
+
+		return "File Successfully Backed Up";
+	}
 
     /**
      * Send a restore message
@@ -377,7 +449,7 @@ public class Peer implements PeerRMI {
      * @param fileId
      * @return
      */
-    private String sendRestoreMsg(BackupFile backupFile, String fileId) {
+    private String sendRestoreMsg(BackupFile backupFile, String fileId, boolean enhanced) {
         ServerSocket restoreSocket = null;
         Socket connectionSocket = null;
 
@@ -386,7 +458,7 @@ public class Peer implements PeerRMI {
         String address = null;
         int restores = restoresCount.getAndIncrement();
 
-        if(version.equals(Const.VERSION_1_1)) {
+        if(enhanced) {
             try {
 				restoreSocket = new ServerSocket(Const.TCP_BASE_PORT + restores);
 				restoreSocket.setSoTimeout(Const.MEDIUM_DELAY);
@@ -403,8 +475,8 @@ public class Peer implements PeerRMI {
         }
 
         for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
-            if(version.equals(Const.VERSION_1_0))
-                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).getBytes(StandardCharsets.US_ASCII);
+            if(!enhanced)
+                header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null).replace(version,Const.VERSION_1_0).getBytes(StandardCharsets.US_ASCII);
 			else
 				header = header(Const.MSG_GETCHUNK, fileId, chunkNo, null,address, Integer.toString(Const.TCP_BASE_PORT + restores)).getBytes(StandardCharsets.US_ASCII);
 
@@ -418,7 +490,7 @@ public class Peer implements PeerRMI {
             }
         }
         
-        if(version.equals(Const.VERSION_1_1)){
+        if(enhanced){
             int counter = 0;
             int num = backupFile.chunks.size();
             while(counter < num) {
@@ -451,7 +523,7 @@ public class Peer implements PeerRMI {
      */
     public String restore(String request) {
         request = request.trim();
-        System.out.println("[Peer " + this.id + "] Restore " + request);
+        System.out.println("[Peer " + this.id + "] RESTOREENH " + request);
 
         File file;
 
@@ -469,7 +541,39 @@ public class Peer implements PeerRMI {
 
 		restoredFiles.put(fileId, new RestoredFile("peer" + id + "/restored/" + request,backupFile.chunks.size()));
 
-        return sendRestoreMsg(backupFile,fileId);
+        return sendRestoreMsg(backupFile,fileId,false);
+	}
+
+	/**
+     * Restore a file using enhacement
+     * 
+     * @param request Request for the restoration of a file
+     * @return String with the information about the success or not of the function
+     */
+	public String restoreENH(String request) {
+		if(version.equals(Const.VERSION_1_0))
+			return Error.NOT_SUPPORTED;
+
+		request = request.trim();
+        System.out.println("[Peer " + this.id + "] RESTOREENH " + request);
+
+        File file;
+
+        try {
+            file = new File(request);
+        } catch (Exception e) {
+            return Error.FILE_NOT_FOUND;
+        }
+
+        String fileId = generateId(file);
+        BackupFile backupFile;
+
+        if ((backupFile = backedupFiles.get(fileId)) == null)
+            return Error.FILE_NOT_BACKED_UP;
+
+		restoredFiles.put(fileId, new RestoredFile("peer" + id + "/restored/" + request,backupFile.chunks.size()));
+
+        return sendRestoreMsg(backupFile,fileId,true);
 	}
     
     /**
@@ -494,16 +598,59 @@ public class Peer implements PeerRMI {
 
 		String fileId = generateId(file);
 
-        if(!version.equals(Const.VERSION_1_0)){
-            updateDeletedFiles(fileId);
-        }
-
 		backedupFiles.remove(fileId);
 
 		try {
             new File("peer" + id + "/backup/" + fileId + ".ser").delete();
         } catch (Exception e) {
         }
+
+		try{
+			byte[] header = header(Const.MSG_DELETE, fileId, null, null).replace(version,Const.VERSION_1_0).getBytes(StandardCharsets.US_ASCII);
+			DatagramPacket deletePacket = new DatagramPacket(header, header.length, InetAddress.getByName(mc_host), mc_port);
+	
+			System.out.println("[Peer " + id + "] Delete file " + fileId);
+			mc.send(deletePacket);
+		} catch(Exception e) {
+			return Error.SEND_MULTICAST_MC;
+		}
+	
+		return "DELETED";
+	}
+
+	/**
+     * Delete a file using enhancement
+     * @param request
+     *          Request for the deletion of a file
+     * @return
+     *          String with the information about the success or not of the function
+     */
+	public String deleteENH(String request) {		
+		if(version.equals(Const.VERSION_1_0))
+			return Error.NOT_SUPPORTED;
+
+		request = request.trim();
+		System.out.println("[Peer " + this.id + "] DELETEENH " + request);
+
+		File file;
+
+		try {
+			file = new File(request);
+
+		} catch (Exception e) {
+			return Error.FILE_NOT_FOUND;
+		}
+
+		String fileId = generateId(file);
+
+		updateDeletedFiles(fileId);
+
+		backedupFiles.remove(fileId);
+
+		try {
+			new File("peer" + id + "/backup/" + fileId + ".ser").delete();
+		} catch (Exception e) {
+		}
 
 		try{
 			byte[] header = header(Const.MSG_DELETE, fileId, null, null).getBytes(StandardCharsets.US_ASCII);
@@ -541,7 +688,7 @@ public class Peer implements PeerRMI {
                 deletedFiles.put(serverId,listFiles);
             }
         } 
-    }
+	}
 
     /**
      * Reclaims memory space from a peer
@@ -549,6 +696,8 @@ public class Peer implements PeerRMI {
      *              Details of the reclaim
      */
 	public String reclaim(String request) {
+		System.out.println("[Peer " + this.id + "] RECLAIM " + request);
+
 		int space_requested = Integer.parseInt(request.trim());
 
 		if(space_requested < 0)

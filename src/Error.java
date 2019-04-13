@@ -3,7 +3,12 @@
  */
 public final class Error {
 
-    /**
+	/**
+     * Version Errors
+     */
+	public static final String NOT_SUPPORTED = "Enhancement not supported on current version";
+	
+	/**
      * File Errors
      */
     public static final String FILE_NOT_FOUND = "File Not Found";

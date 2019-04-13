@@ -15,6 +15,16 @@ public interface PeerRMI extends Remote {
 	 * @throws RemoteException
 	 */
 	String backup(String request) throws RemoteException;
+
+	/**
+	 * Allows the enhanced backup of a document amongst the peers of the network
+	 * @param request
+	 * 				String containing the details about the request
+	 * @return
+	 * 				String containing the status of the execution
+	 * @throws RemoteException
+	 */
+	String backupENH(String request) throws RemoteException;
 	
 	/**
 	 * Allows the deletion of a document saved in the peers of the network
@@ -27,6 +37,16 @@ public interface PeerRMI extends Remote {
 	String delete(String request) throws RemoteException;
 
 	/**
+	 * Allows the enhanced deletion of a document saved in the peers of the network
+	 * @param request
+	 * 				String containing the details about the request
+	 * @return
+	 * 				String containing the status of the execution
+	 * @throws RemoteException
+	 */
+	String deleteENH(String request) throws RemoteException;
+
+	/**
 	 * Allows the restoration of a document saved in the other peers of the network, the restored file will be saved in the peer-iniatior
 	 * @param request
 	 * 				String containing the details about the request
@@ -37,7 +57,17 @@ public interface PeerRMI extends Remote {
 	String restore(String request) throws RemoteException;
 
 	/**
-	 * Allows the reclaim of space of the initiator-peer
+	 * Allows the restoration of a document saved in the other peers of the network, the restored file will be saved in the peer-iniatior
+	 * @param request
+	 * 				String containing the details about the request
+	 * @return
+	 * 				String containing the status of the execution
+	 * @throws RemoteException
+	 */
+	String restoreENH(String request) throws RemoteException;
+
+	/**
+	 * Allows the enhanced reclaim of space of the initiator-peer
 	 * @param request
 	 * 				String containing the details about the request
 	 * @return
