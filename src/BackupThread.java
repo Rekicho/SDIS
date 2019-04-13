@@ -2,13 +2,42 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.net.DatagramPacket;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Thread created to handle the backup message sending
+ */
 public class BackupThread implements Runnable {
+
+	/**
+	 * Peer associated with the sender
+	 */
 	Peer peer;
+
+	/**
+	 * Map that associates the chunk number to the datagram packet with the information to be sent
+	 */
 	ConcurrentHashMap<Integer, DatagramPacket> packets;
+
+	/**
+	 * Counter of the chunk beeing sent
+	 */
 	AtomicInteger actualChunk;
+
+	/**
+	 * Object that contains the information about the file to be backedup
+	 */
 	BackupFile backupFile;
 
-	
+	/**
+	 * Constructor of the thread
+	 * @param peer
+	 * 				Sender of the chunks
+	 * @param packets
+	 * 				Hash map with the information to be sent
+	 * @param actualChunk
+	 * 				Chunk that is beeing sent by the thread
+	 * @param backupFile
+	 * 				Class with the information about the desired replication degree of the file
+	 */
 	BackupThread(Peer peer, ConcurrentHashMap<Integer, DatagramPacket> packets, AtomicInteger actualChunk, BackupFile backupFile) {
 		this.peer = peer;
 		this.packets = packets;
@@ -16,6 +45,9 @@ public class BackupThread implements Runnable {
 		this.backupFile = backupFile;
 	}
 
+	/**
+	 * Main function of the thread. Sends the chunks to the multicast data backup channel
+	 */
 	public void run() {
 		try {
             while(true) {
