@@ -1,1 +1,0 @@
-gnome-terminal -e "./test.sh BACKUP png.png 3"
