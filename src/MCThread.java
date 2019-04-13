@@ -154,7 +154,7 @@ public class MCThread implements Runnable {
 
 		int filesize;
 		FileInputStream fileToRestore;
-		byte[] header = (peer.header("CHUNK", fileId, chunkNo, null)).getBytes(StandardCharsets.US_ASCII);
+		byte[] header = (peer.header(Const.MDR_CHUNK, fileId, chunkNo, null)).getBytes(StandardCharsets.US_ASCII);
 		byte[] new_buffer = new byte[Const.BUFFER_SIZE];
 
 		try {
