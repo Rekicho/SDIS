@@ -812,7 +812,7 @@ public class Peer implements PeerRMI {
             System.out.println("Usage: java Peer <protocol_version> <peer_id> <remote_object_name> <MC_IP> <MC_port> <MDB_IP> <MDB_port> <MDR_IP> <MDR_port>");
             System.exit(-1);
         }
-
+        System.setProperty("java.rmi.server.hostname",InetAddress.getLocalHost().getHostAddress());
         Peer obj = new Peer(args[0], Integer.parseInt(args[1]), args[3], Integer.parseInt(args[4]), args[5], Integer.parseInt(args[6]), args[7], Integer.parseInt(args[8]));
         PeerRMI stub = (PeerRMI) UnicastRemoteObject.exportObject(obj, 0);
 
