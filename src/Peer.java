@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.rmi.RemoteException;
 
 /**
  * Class that represents a Peer
@@ -806,22 +807,28 @@ public class Peer implements PeerRMI {
      * Main function of the Peer
      * @param args
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length != 9) {
             System.out.println("Usage: java Peer <protocol_version> <peer_id> <remote_object_name> <MC_IP> <MC_port> <MDB_IP> <MDB_port> <MDR_IP> <MDR_port>");
             System.exit(-1);
         }
 
-        try {
-            Peer obj = new Peer(args[0], Integer.parseInt(args[1]), args[3], Integer.parseInt(args[4]), args[5], Integer.parseInt(args[6]), args[7], Integer.parseInt(args[8]));
-            PeerRMI stub = (PeerRMI) UnicastRemoteObject.exportObject(obj, 0);
+        Peer obj = new Peer(args[0], Integer.parseInt(args[1]), args[3], Integer.parseInt(args[4]), args[5], Integer.parseInt(args[6]), args[7], Integer.parseInt(args[8]));
+        PeerRMI stub = (PeerRMI) UnicastRemoteObject.exportObject(obj, 0);
+
+        try {   
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry();
+            Registry registry = LocateRegistry.createRegistry(1099);
             registry.rebind(args[2], stub);
 
             System.out.println("[Peer " + args[1]  +"] Ready");
-        } catch (Exception e) {
+        }
+         catch(RemoteException e){
+             Registry registry = LocateRegistry.getRegistry(1099);
+            registry.rebind(args[2], stub);
+         }
+         catch (Exception e) {
             System.err.println("[Peer " + args[1] + "] Exception: " + e.toString());
             e.printStackTrace();
         }
