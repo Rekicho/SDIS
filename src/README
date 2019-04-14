@@ -1,3 +1,8 @@
+Used Code:
+
+Peer.java -> function hexString -> Taken from https://stackoverflow.com/a/9855338
+MCThread.java -> function deleteFolder -> Taken from https://stackoverflow.com/a/7768086
+
 Compiling:
 
     javac *.java
