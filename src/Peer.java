@@ -27,6 +27,10 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.rmi.RemoteException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /**
  * Class that represents a Peer
@@ -214,9 +218,48 @@ public class Peer implements PeerRMI {
             new File("peer" + id).mkdirs();
             new File("peer" + id + "/backup").mkdirs();
             new File("peer" + id + "/restored").mkdirs();
-        }
+		}
+		
+		if(!version.equals(Const.VERSION_1_0)) {
+			path = Paths.get("peer" + id + "/deleted");
+			if (Files.exists(path)) {
+				File folder = new File("peer" + id + "/deleted");
+				for (File fileEntry : folder.listFiles()) {
+					if (fileEntry.getName().substring(fileEntry.getName().length() - 4).equals(".ser")) {
+						deletedFiles.put(Integer.parseInt(fileEntry.getName().substring(0, fileEntry.getName().length() - 4)),
+							loadDeletedFiles("peer" + id + "/deleted/" + fileEntry.getName()));
+					}
+				}
+			} else {
+				new File("peer" + id + "/deleted").mkdirs();
+			}
+		}
+	}
 
-    }
+	ConcurrentSkipListSet<String> loadDeletedFiles(String path) {
+		try {
+            FileInputStream file = new FileInputStream(path);
+			ObjectInputStream in = new ObjectInputStream(file);
+			ConcurrentSkipListSet<String> entry = (ConcurrentSkipListSet<String>) in.readObject();
+            in.close();
+            file.close();
+            return entry;
+        } catch (Exception e) {
+            return null;
+        }
+	}
+	
+	void saveDeletedFiles(int peer) {
+		try {
+            FileOutputStream file = new FileOutputStream("peer" + id + "/deleted/" + peer + ".ser");
+            ObjectOutputStream object = new ObjectOutputStream(file);
+            object.writeObject(deletedFiles.get(peer));
+            object.close();
+            file.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+	}
 
     /**
      * Creates a String of a header formatted following the protocol rules
@@ -234,8 +277,8 @@ public class Peer implements PeerRMI {
     }
 
     
-    String header(String message_type, Integer serverId, String fileId) {
-        return message_type + " " + version + " " + serverId + " " + (fileId != null? fileId : "") + " " + Const.CRLF;
+    String header(String message_type, Integer peerId, String fileId) {
+        return message_type + " " + version + " " + peerId + " " + (fileId != null? fileId : "") + " " + Const.CRLF;
     }
 
     /**
@@ -366,6 +409,8 @@ public class Peer implements PeerRMI {
 		AtomicInteger threadsLeft = new AtomicInteger(packets.size());
 		AtomicInteger errors = new AtomicInteger(0);
 
+		executor.setCorePoolSize(executor.getCorePoolSize() + (packets.size() * 2));
+
 		for(int i = 0; i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile, threadsLeft, errors));
 
@@ -374,6 +419,8 @@ public class Peer implements PeerRMI {
 				Thread.sleep(100);
 			} catch(Exception e) {}
 		}
+
+		executor.setCorePoolSize(executor.getCorePoolSize() - (packets.size() * 2));
 
 		int missing = errors.get();
 
@@ -452,6 +499,8 @@ public class Peer implements PeerRMI {
 		AtomicInteger threadsLeft = new AtomicInteger(packets.size());
 		AtomicInteger errors = new AtomicInteger(0);
 
+		executor.setCorePoolSize(executor.getCorePoolSize() + (packets.size() * 2));
+
 		for(int i = 0; i < packets.size(); i++)
 			executor.execute(new BackupThread(this, packets, actualChunk, backupFile, threadsLeft, errors));
 
@@ -461,6 +510,8 @@ public class Peer implements PeerRMI {
 				Thread.sleep(100);
 			} catch(Exception e) {}
 		}
+
+		executor.setCorePoolSize(executor.getCorePoolSize() - (packets.size() * 2));
 
 		int missing = errors.get();
 
@@ -500,7 +551,11 @@ public class Peer implements PeerRMI {
                 return Error.FAILED_TO_READ_IP;
             }
             
-        }
+		}
+		
+		int threadsNeeded = backupFile.chunks.size();
+
+		executor.setCorePoolSize(executor.getCorePoolSize() + threadsNeeded);
 
         for (int chunkNo = 0; chunkNo < backupFile.chunks.size(); chunkNo++) {
             if(!enhanced)
@@ -544,6 +599,8 @@ public class Peer implements PeerRMI {
 				Thread.sleep(100);
 			} catch(Exception e) {}
 		}
+
+		executor.setCorePoolSize(executor.getCorePoolSize() - threadsNeeded);
 
         return "RESTORED";
     }
@@ -712,14 +769,16 @@ public class Peer implements PeerRMI {
             Iterator<Integer> iterator = bFile.chunks.get(key).iterator();
 
             while(iterator.hasNext()) {
-                Integer serverId = iterator.next();
+                Integer peerId = iterator.next();
             
-                ConcurrentSkipListSet<String> listFiles = deletedFiles.get(serverId);
+                ConcurrentSkipListSet<String> listFiles = deletedFiles.get(peerId);
                 if(listFiles == null){
                     listFiles = new ConcurrentSkipListSet<String>();
                 }
                 listFiles.add(fileId);
-                deletedFiles.put(serverId,listFiles);
+				deletedFiles.put(peerId,listFiles);
+
+				saveDeletedFiles(peerId);
             }
         } 
 	}
@@ -825,8 +884,10 @@ public class Peer implements PeerRMI {
             System.out.println("[Peer " + args[1]  +"] Ready");
         }
          catch(RemoteException e){
-             Registry registry = LocateRegistry.getRegistry(1099);
-            registry.rebind(args[2], stub);
+            Registry registry = LocateRegistry.getRegistry(1099);
+			registry.rebind(args[2], stub);
+			
+			System.out.println("[Peer " + args[1]  +"] Ready");
          }
          catch (Exception e) {
             System.err.println("[Peer " + args[1] + "] Exception: " + e.toString());

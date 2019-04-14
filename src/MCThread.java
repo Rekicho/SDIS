@@ -319,6 +319,9 @@ public class MCThread implements Runnable {
 		ConcurrentSkipListSet<String> listFiles = peer.deletedFiles.get(peerId);
 		if(listFiles == null) return;
 		listFiles.remove(fileId);
+		try {
+			new File("peer" + peer.id + "/deleted/" + peerId + ".ser").delete();
+		} catch(Exception e) {}
 	}
 
 	/**
