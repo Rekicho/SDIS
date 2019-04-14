@@ -1,1 +1,1 @@
-rm -rf peer?
+rm -rf */
