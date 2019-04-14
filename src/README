@@ -22,6 +22,9 @@ Executing:
 Using Scripts:
     chmod +x *.sh
 
+    ./compile.sh
+            Compiles all the files in the file directory
+
     ./peers.sh <version> <initialID> <finalID>
             Opens a terminal and runs the Peer app for each id from initialId to finalId, both inclusive
 
@@ -31,3 +34,6 @@ Using Scripts:
     ./test.sh <peerId> <sub_protocol> <operand1> <operand2>
             Runs the TestApp using as the initiater-peer the peer with id 'peerId'.
             It runs the command following the id: '<sub_protocol> <operand1> <operand2>'.
+
+    ./reset.sh
+            Deletes the persistent memory of the peers which allow a clean run

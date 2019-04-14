@@ -240,6 +240,7 @@ public class Peer implements PeerRMI {
 		try {
             FileInputStream file = new FileInputStream(path);
 			ObjectInputStream in = new ObjectInputStream(file);
+            @SuppressWarnings("unchecked")
 			ConcurrentSkipListSet<String> entry = (ConcurrentSkipListSet<String>) in.readObject();
             in.close();
             file.close();
