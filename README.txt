@@ -5,11 +5,12 @@ MCThread.java -> function deleteFolder -> Taken from https://stackoverflow.com/a
 
 Compiling:
 
-    javac *.java
+    cd src
+	javac *.java
 
 Executing:
 
-    cd <source_folder_path>
+    cd src
 
     Peers:
 
